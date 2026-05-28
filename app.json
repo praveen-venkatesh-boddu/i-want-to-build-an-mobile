@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Pantry Pocket",
+    "slug": "pantry-pocket",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F6F2EA"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Home Stock uses the camera to scan item barcodes."
+      }
+    },
+    "android": {
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#F6F2EA"
+      }
+    }
+  }
+}

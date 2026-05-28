@@ -1,0 +1,106 @@
+import type { FilterKey, ItemDraft, PantryItem } from "../types/pantry";
+
+export const categories = [
+  "Staples",
+  "Produce",
+  "Cans",
+  "Frozen",
+  "Snacks",
+  "Spices",
+  "Toiletries",
+  "Cleaning",
+  "Laundry",
+  "Paper Goods",
+  "First Aid",
+  "Pet Supplies",
+  "Baby Supplies",
+  "Office Supplies",
+  "Batteries",
+  "Hardware",
+  "Seasonal",
+  "Other"
+];
+
+// Categories treated as perishable for the home dashboard tile
+export const PERISHABLE_CATEGORIES = ["Produce", "Frozen"];
+
+export const packageTypes = [
+  { label: "Bags", value: "bags", defaultSize: "10 lb" },
+  { label: "Cans", value: "cans", defaultSize: "9 fl oz" },
+  { label: "Boxes", value: "boxes", defaultSize: "16 oz" },
+  { label: "Jars", value: "jars", defaultSize: "24 oz" },
+  { label: "Bottles", value: "bottles", defaultSize: "32 fl oz" },
+  { label: "Cartons", value: "cartons", defaultSize: "1 qt" },
+  { label: "Pouches", value: "pouches", defaultSize: "6 oz" },
+  { label: "Packs", value: "packs", defaultSize: "12 ct" },
+  { label: "Items", value: "items", defaultSize: "1 ct" }
+];
+
+export function getDefaultPackageSize(unit: string) {
+  return packageTypes.find((packageType) => packageType.value === unit)?.defaultSize ?? "";
+}
+
+export const filters: Array<{ key: FilterKey; label: string }> = [
+  { key: "all", label: "All" },
+  { key: "expiring", label: "Expiring" },
+  { key: "low", label: "Low" },
+  { key: "opened", label: "Opened" }
+];
+
+export const starterItems: PantryItem[] = [
+  {
+    id: "starter-rice",
+    addedOn: "2026-04-25",
+    name: "Jasmine rice",
+    category: "Staples",
+    quantity: 2,
+    unit: "bags",
+    packageSize: "10 lb",
+    location: "Pantry shelf",
+    expiresOn: "2026-10-01",
+    barcode: "",
+    notes: "One open, one sealed",
+    opened: true
+  },
+  {
+    id: "starter-tomatoes",
+    addedOn: "2026-05-11",
+    name: "Crushed tomatoes",
+    category: "Cans",
+    quantity: 4,
+    unit: "cans",
+    packageSize: "9 fl oz",
+    location: "Lower cabinet",
+    expiresOn: "2026-05-30",
+    barcode: "",
+    notes: "Good for pasta night",
+    opened: false
+  },
+  {
+    id: "starter-spinach",
+    addedOn: "2026-05-15",
+    name: "Frozen spinach",
+    category: "Frozen",
+    quantity: 1,
+    unit: "bags",
+    packageSize: "10 lb",
+    location: "Freezer drawer",
+    expiresOn: "2026-05-24",
+    barcode: "",
+    notes: "",
+    opened: false
+  }
+];
+
+export const emptyDraft: ItemDraft = {
+  name: "",
+  category: "Staples",
+  quantity: "1",
+  unit: "bags",
+  packageSize: "10 lb",
+  location: "Storage",
+  expiresOn: "",
+  barcode: "",
+  notes: "",
+  opened: false
+};

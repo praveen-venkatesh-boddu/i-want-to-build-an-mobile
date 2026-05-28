@@ -1,0 +1,26 @@
+{
+  "name": "pantry-pocket",
+  "version": "1.0.0",
+  "private": true,
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "C:\\Progra~1\\nodejs\\node.exe node_modules\\expo\\bin\\cli start",
+    "android": "C:\\Progra~1\\nodejs\\node.exe node_modules\\expo\\bin\\cli start --android",
+    "ios": "C:\\Progra~1\\nodejs\\node.exe node_modules\\expo\\bin\\cli start --ios",
+    "web": "C:\\Progra~1\\nodejs\\node.exe node_modules\\expo\\bin\\cli start --web",
+    "typecheck": "C:\\Progra~1\\nodejs\\node.exe node_modules\\typescript\\bin\\tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~54.0.0",
+    "expo-camera": "~17.0.10",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  }
+}
