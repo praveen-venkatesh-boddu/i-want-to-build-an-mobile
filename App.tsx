@@ -84,6 +84,7 @@ export default function App() {
   // ── Actions ────────────────────────────────────────────────────────────
   function openEditItem(item: PantryItem) {
     setDraft({
+      addedOn: item.addedOn,
       name: item.name,
       category: item.category,
       quantity: String(item.quantity),
