@@ -140,10 +140,40 @@ export const itemEditorStyles = StyleSheet.create({
     flex: 0.75
   },
   packageTypeField: {
-    flex: 1.25
+    flex: 1.2
   },
   packageSizeField: {
-    flex: 1
+    flex: 1.3
+  },
+  pkgSizeRow: {
+    backgroundColor: md3.surfaceContainerLowest,
+    borderColor: md3.outline,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    overflow: "hidden"
+  },
+  pkgAmountInput: {
+    borderRightColor: md3.outlineVariant,
+    borderRightWidth: 1,
+    color: md3.onSurface,
+    flex: 1,
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
+  pkgUnitTrigger: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    width: 70
+  },
+  pkgUnitText: {
+    color: md3.onSurface,
+    fontSize: 15
   },
 
   // ── Dropdown ──────────────────────────────────────────────────────────

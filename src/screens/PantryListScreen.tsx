@@ -5,19 +5,18 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { filters } from "../constants/pantry";
 import { md3 } from "../styles/globalStyles";
 import { PantryCard } from "../components/PantryCard";
-import { Stat } from "../components/Stat";
-import type { FilterKey, HomeView, PantryItem, PantryStats } from "../types/pantry";
+import type { FilterKey, HomeView, PantryItem } from "../types/pantry";
 import { pantryListStyles as styles } from "./PantryListScreen.styles";
 
 type PantryListScreenProps = {
   filter: FilterKey;
   items: PantryItem[];
   query: string;
-  stats: PantryStats;
   view: "find" | "shopping";
   onChangeFilter: (filter: FilterKey) => void;
   onChangeQuery: (query: string) => void;
   onEditItem: (item: PantryItem) => void;
+  onUseOneItem: (item: PantryItem) => void;
   onGoHome: () => void;
 };
 
@@ -25,11 +24,11 @@ export function PantryListScreen({
   filter,
   items,
   query,
-  stats,
   view,
   onChangeFilter,
   onChangeQuery,
   onEditItem,
+  onUseOneItem,
   onGoHome
 }: PantryListScreenProps) {
   const title = view === "shopping" ? "Shopping List" : "Find Item";
@@ -56,12 +55,6 @@ export function PantryListScreen({
       <View style={styles.content}>
         {view === "find" ? (
           <>
-            <View style={styles.statsRow}>
-              <Stat label="Items" value={stats.total} />
-              <Stat label="Expiring" value={stats.expiring} tone="warning" />
-              <Stat label="Low" value={stats.low} tone="danger" />
-            </View>
-
             <TextInput
               value={query}
               onChangeText={onChangeQuery}
@@ -109,6 +102,7 @@ export function PantryListScreen({
                 key={item.id}
                 item={item}
                 onEdit={() => onEditItem(item)}
+                onUseOne={() => onUseOneItem(item)}
               />
             ))
           )}

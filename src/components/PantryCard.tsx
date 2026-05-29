@@ -1,3 +1,4 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -8,11 +9,12 @@ import { daysUntil } from "../utils/date";
 type PantryCardProps = {
   item: PantryItem;
   onEdit: () => void;
+  onUseOne: () => void;
 };
 
-export function PantryCard({ item, onEdit }: PantryCardProps) {
+export function PantryCard({ item, onEdit, onUseOne }: PantryCardProps) {
   const days = daysUntil(item.expiresOn);
-  const isLow = item.quantity <= 1;
+  const isLow = item.quantity === 0 && item.opened;
   const isExpiring = item.expiresOn && days <= 7;
 
   // Left strip colour
@@ -46,20 +48,36 @@ export function PantryCard({ item, onEdit }: PantryCardProps) {
           {item.quantity} {item.unit}
           {item.category ? `  ·  ${item.category}` : ""}
         </Text>
-        {item.opened ? (
-          <View style={s.openedPill}>
-            <Text style={s.openedText}>Opened</Text>
+        {(expiryLabel || item.quantity === 0) ? (
+          <View style={s.tagsRow}>
+            {expiryLabel ? (
+              <View style={[s.tag, { backgroundColor: expiryPillBg }]}>
+                <Text style={[s.tagText, { color: expiryPillText }]}>{expiryLabel}</Text>
+              </View>
+            ) : null}
+            {item.quantity === 0 ? (
+              <View style={[s.tag, s.openedTag]}>
+                <Text style={[s.tagText, s.openedTagText]}>Opened</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
       </View>
 
-      {/* Right column: expiry pill + edit button */}
+      {/* Right column: use-one button + edit button */}
       <View style={s.right}>
-        {expiryLabel ? (
-          <View style={[s.expiryPill, { backgroundColor: expiryPillBg }]}>
-            <Text style={[s.expiryText, { color: expiryPillText }]}>{expiryLabel}</Text>
-          </View>
-        ) : <View />}
+        <Pressable
+          onPress={onUseOne}
+          style={s.useOnePill}
+          disabled={item.quantity === 0}
+        >
+          <MaterialIcons
+            name="remove"
+            size={12}
+            color={item.quantity === 0 ? md3.onSurfaceVariant : md3.onSurface}
+          />
+          <Text style={[s.useOneText, item.quantity === 0 && s.useOneTextDisabled]}>Use 1</Text>
+        </Pressable>
 
         <Pressable onPress={onEdit} style={s.editPill}>
           <Text style={s.editText}>Edit</Text>
@@ -110,44 +128,63 @@ const s = StyleSheet.create({
     letterSpacing: 0.2
   },
 
-  // Opened badge
-  openedPill: {
+  // Tags row (expiry + opened)
+  tagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 2
+  },
+  tag: {
     alignSelf: "flex-start",
-    backgroundColor: md3.tertiaryContainer,
     borderRadius: radii.round,
-    marginTop: 2,
     paddingHorizontal: 8,
     paddingVertical: 2
   },
-  openedText: {
-    color: md3.onTertiaryContainer,
+  tagText: {
     fontSize: 10,
     fontWeight: "500",
     letterSpacing: 0.4
   },
+  openedTag: {
+    backgroundColor: md3.tertiaryContainer
+  },
+  openedTagText: {
+    color: md3.onTertiaryContainer
+  },
 
   // Right column
   right: {
-    justifyContent: "space-between",
+    gap: 6,
+    justifyContent: "center",
     paddingHorizontal: 10,
     paddingVertical: 12,
     width: 84
   },
 
-  // Expiry pill (top-right)
-  expiryPill: {
+  // Use-one pill
+  useOnePill: {
     alignItems: "center",
+    borderColor: md3.outline,
     borderRadius: radii.round,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 3,
+    justifyContent: "center",
     paddingHorizontal: 6,
     paddingVertical: 4
   },
-  expiryText: {
+  useOneText: {
+    color: md3.onSurface,
     fontSize: 11,
     fontWeight: "500",
     letterSpacing: 0.3
   },
+  useOneTextDisabled: {
+    color: md3.onSurfaceVariant
+  },
 
-  // Edit pill (bottom-right)
+  // Edit pill
   editPill: {
     alignItems: "center",
     borderColor: md3.outline,

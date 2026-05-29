@@ -14,6 +14,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Field } from "../components/Field";
 import { categories, getDefaultPackageSize, packageTypes } from "../constants/pantry";
+
+const PKG_UNIT_OPTIONS = ["fl oz", "lb", "oz", "qt", "ct"] as const;
+type PkgUnit = (typeof PKG_UNIT_OPTIONS)[number];
+
+function parsePkgSize(value: string): { amount: string; unit: PkgUnit } {
+  const trimmed = value.trim();
+  for (const u of PKG_UNIT_OPTIONS) {
+    if (trimmed === u) return { amount: "", unit: u };
+    if (trimmed.endsWith(" " + u)) {
+      return { amount: trimmed.slice(0, trimmed.length - u.length - 1).trim(), unit: u };
+    }
+  }
+  const spaceIdx = trimmed.lastIndexOf(" ");
+  if (spaceIdx > -1) return { amount: trimmed.slice(0, spaceIdx), unit: "lb" };
+  return { amount: trimmed, unit: "lb" };
+}
 import { applyLookupResultToDraft, lookupProductByBarcode } from "../services/productLookup";
 import { globalStyles, md3 } from "../styles/globalStyles";
 import type { ItemDraft } from "../types/pantry";
@@ -42,6 +58,7 @@ export function ItemEditorScreen({
   const [categoryQuery, setCategoryQuery] = useState("");
   const [isCategoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [isPackageDropdownOpen, setPackageDropdownOpen] = useState(false);
+  const [isPkgUnitDropdownOpen, setPkgUnitDropdownOpen] = useState(false);
   const [isScannerOpen, setScannerOpen] = useState(false);
   const [isLookingUpBarcode, setLookingUpBarcode] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
@@ -92,10 +109,17 @@ export function ItemEditorScreen({
 
   const selectedPackageType = packageTypes.find((packageType) => packageType.value === draft.unit);
 
+  function closeAllDropdowns() {
+    setCategoryDropdownOpen(false);
+    setPackageDropdownOpen(false);
+    setPkgUnitDropdownOpen(false);
+  }
+
   const Root = insideApp ? View : SafeAreaView;
 
   return (
     <Root style={insideApp ? { flex: 1, backgroundColor: "transparent" } : styles.modalSafeArea}>
+      <Pressable style={styles.modalShell} onPress={closeAllDropdowns}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.modalShell}
@@ -171,6 +195,7 @@ export function ItemEditorScreen({
               onPress={() => {
                 setCategoryDropdownOpen((isOpen) => !isOpen);
                 setPackageDropdownOpen(false);
+                setPkgUnitDropdownOpen(false);
               }}
               style={styles.dropdownButton}
             >
@@ -226,7 +251,20 @@ export function ItemEditorScreen({
             <Field label="Quantity" style={styles.quantityField}>
               <TextInput
                 value={draft.quantity}
-                onChangeText={(quantity) => onChangeDraft((current) => ({ ...current, quantity }))}
+                onChangeText={(quantity) =>
+                  onChangeDraft((current) => {
+                    const newQty = parseFloat(quantity);
+                    const prevQty = parseFloat(current.quantity);
+                    const opened =
+                      current.opened &&
+                      Number.isFinite(newQty) &&
+                      Number.isFinite(prevQty) &&
+                      newQty > prevQty
+                        ? false
+                        : current.opened;
+                    return { ...current, quantity, opened };
+                  })
+                }
                 keyboardType="decimal-pad"
                 style={globalStyles.textInput}
               />
@@ -236,6 +274,7 @@ export function ItemEditorScreen({
                 onPress={() => {
                   setPackageDropdownOpen((isOpen) => !isOpen);
                   setCategoryDropdownOpen(false);
+                  setPkgUnitDropdownOpen(false);
                 }}
                 style={styles.dropdownButton}
               >
@@ -248,15 +287,40 @@ export function ItemEditorScreen({
               </Pressable>
             </Field>
             <Field label="Package size" style={styles.packageSizeField}>
-              <TextInput
-                value={draft.packageSize}
-                onChangeText={(packageSize) =>
-                  onChangeDraft((current) => ({ ...current, packageSize }))
-                }
-                placeholder="10 lb"
-                placeholderTextColor={md3.onSurfaceVariant}
-                style={globalStyles.textInput}
-              />
+              {(() => {
+                const { amount: pkgAmount, unit: pkgUnit } = parsePkgSize(draft.packageSize);
+                return (
+                  <View style={styles.pkgSizeRow}>
+                    <TextInput
+                      value={pkgAmount}
+                      onChangeText={(amount) =>
+                        onChangeDraft((current) => ({
+                          ...current,
+                          packageSize: `${amount} ${pkgUnit}`
+                        }))
+                      }
+                      keyboardType="decimal-pad"
+                      style={styles.pkgAmountInput}
+                      returnKeyType="done"
+                    />
+                    <Pressable
+                      onPress={() => {
+                        setCategoryDropdownOpen(false);
+                        setPackageDropdownOpen(false);
+                        setPkgUnitDropdownOpen((open) => !open);
+                      }}
+                      style={styles.pkgUnitTrigger}
+                    >
+                      <Text style={styles.pkgUnitText}>{pkgUnit}</Text>
+                      <MaterialIcons
+                        name={isPkgUnitDropdownOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                        size={18}
+                        color={md3.onSurfaceVariant}
+                      />
+                    </Pressable>
+                  </View>
+                );
+              })()}
             </Field>
           </View>
 
@@ -280,16 +344,41 @@ export function ItemEditorScreen({
                     >
                       {packageType.label}
                     </Text>
-                    <Text
-                      style={[
-                        styles.dropdownOptionMeta,
-                        draft.unit === packageType.value && styles.dropdownOptionTextActive
-                      ]}
-                    >
-                      {packageType.defaultSize}
-                    </Text>
+
                   </Pressable>
                 ))}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          {isPkgUnitDropdownOpen ? (
+            <View style={styles.dropdownMenu}>
+              <ScrollView style={styles.dropdownOptionsList} nestedScrollEnabled>
+                {PKG_UNIT_OPTIONS.map((u) => {
+                  const { amount: pkgAmount, unit: pkgUnit } = parsePkgSize(draft.packageSize);
+                  return (
+                    <Pressable
+                      key={u}
+                      onPress={() => {
+                        onChangeDraft((current) => ({
+                          ...current,
+                          packageSize: `${pkgAmount} ${u}`
+                        }));
+                        setPkgUnitDropdownOpen(false);
+                      }}
+                      style={[styles.dropdownOption, pkgUnit === u && styles.dropdownOptionActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.dropdownOptionText,
+                          pkgUnit === u && styles.dropdownOptionTextActive
+                        ]}
+                      >
+                        {u}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </View>
           ) : null}
@@ -346,6 +435,7 @@ export function ItemEditorScreen({
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
+      </Pressable>
 
       <Modal animationType="slide" visible={isScannerOpen} presentationStyle="fullScreen">
         <BarcodeScannerScreen

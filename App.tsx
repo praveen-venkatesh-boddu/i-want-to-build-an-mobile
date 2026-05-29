@@ -1,9 +1,9 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Modal } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Alert } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-import { emptyDraft, PERISHABLE_CATEGORIES, starterItems } from "./src/constants/pantry";
+import { makeEmptyDraft, PERISHABLE_CATEGORIES, starterItems } from "./src/constants/pantry";
 import { loadPantryItems, savePantryItems } from "./src/storage/pantryStorage";
 import { globalStyles } from "./src/styles/globalStyles";
 import { daysSince, daysUntil, todayISO } from "./src/utils/date";
@@ -15,15 +15,16 @@ import { ItemEditorScreen } from "./src/screens/ItemEditorScreen";
 import { PantryListScreen } from "./src/screens/PantryListScreen";
 import type { FilterKey, HomeView, ItemDraft, PantryItem } from "./src/types/pantry";
 
+
 export default function App() {
   const [items, setItems] = useState<PantryItem[]>(starterItems);
   const [homeView, setHomeView] = useState<HomeView>("home");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [draft, setDraft] = useState<ItemDraft>(emptyDraft);
+  const [draft, setDraft] = useState<ItemDraft>(makeEmptyDraft);
 
-  // Edit-existing modal state (add-new is a full screen now)
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+  const editReturnView = useRef<HomeView>("find");
   const [hasLoaded, setHasLoaded] = useState(false);
 
   // ── Persistence ────────────────────────────────────────────────────────
@@ -42,14 +43,8 @@ export default function App() {
   }, [hasLoaded, items]);
 
   // ── Derived data ───────────────────────────────────────────────────────
-  const stats = useMemo(() => ({
-    total: items.length,
-    expiring: items.filter((i) => daysUntil(i.expiresOn) <= 7).length,
-    low: items.filter((i) => i.quantity <= 1).length
-  }), [items]);
-
-  const shoppingItems = useMemo(
-    () => items.filter((i) => i.quantity <= 1).sort((a, b) => a.name.localeCompare(b.name)),
+const shoppingItems = useMemo(
+    () => items.filter((i) => i.quantity === 0 && i.opened).sort((a, b) => a.name.localeCompare(b.name)),
     [items]
   );
 
@@ -63,7 +58,7 @@ export default function App() {
       })
       .filter((item) => {
         if (filter === "expiring") return daysUntil(item.expiresOn) <= 7;
-        if (filter === "low") return item.quantity <= 1;
+        if (filter === "low") return item.quantity === 0 && item.opened;
         if (filter === "opened") return item.opened;
         return true;
       })
@@ -97,6 +92,8 @@ export default function App() {
       opened: item.opened
     });
     setEditingItem(item);
+    editReturnView.current = homeView;
+    setHomeView("edit-item");
   }
 
   function saveNewItem() {
@@ -130,15 +127,28 @@ export default function App() {
       notes: draft.notes.trim(), opened: draft.opened };
     setItems((prev) => prev.map((i) => (i.id === editingItem.id ? updated : i)));
     setEditingItem(null);
+    setHomeView(editReturnView.current);
   }
 
   function addItem(item: PantryItem) {
     setItems((prev) => [item, ...prev]);
   }
 
+  function useOneItem(item: PantryItem) {
+    const newQty = Math.max(0, item.quantity - 1);
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id
+          ? { ...i, quantity: newQty, opened: newQty === 0 ? true : i.opened }
+          : i
+      )
+    );
+  }
+
   function removeItem(id: string) {
     setItems((prev) => prev.filter((i) => i.id !== id));
     setEditingItem(null);
+    setHomeView(editReturnView.current);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -165,11 +175,12 @@ export default function App() {
             filter={filter}
             items={screenItems}
             query={query}
-            stats={stats}
+
             view={homeView}
             onChangeFilter={setFilter}
             onChangeQuery={setQuery}
             onEditItem={openEditItem}
+            onUseOneItem={useOneItem}
             onGoHome={() => setHomeView("home")}
           />
         )}
@@ -179,7 +190,7 @@ export default function App() {
             onGoBack={() => setHomeView("home")}
             onGoToPerishable={() => setHomeView("add-perishable")}
             onGoToScanLookup={() => {
-              setDraft(emptyDraft);
+              setDraft(makeEmptyDraft());
               setHomeView("add-item");
             }}
           />
@@ -203,20 +214,20 @@ export default function App() {
           />
         )}
 
-        {/* ── Bottom nav — always visible ── */}
-        <BottomNavBar view={homeView} onSelectView={setHomeView} />
-
-        {/* ── Edit-existing modal (unchanged flow) ── */}
-        <Modal animationType="slide" visible={editingItem !== null} presentationStyle="pageSheet">
+        {homeView === "edit-item" && (
           <ItemEditorScreen
             draft={draft}
+            insideApp
             isEditing
-            onCancel={() => setEditingItem(null)}
+            onCancel={() => { setEditingItem(null); setHomeView(editReturnView.current); }}
             onChangeDraft={setDraft}
             onRemove={editingItem ? () => removeItem(editingItem.id) : undefined}
             onSave={saveEditedItem}
           />
-        </Modal>
+        )}
+
+        {/* ── Bottom nav — always visible ── */}
+        <BottomNavBar view={homeView} onSelectView={setHomeView} />
 
       </SafeAreaView>
     </SafeAreaProvider>

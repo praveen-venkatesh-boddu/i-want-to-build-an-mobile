@@ -1,4 +1,5 @@
 import type { FilterKey, ItemDraft, PantryItem } from "../types/pantry";
+import { oneYearFromTodayISO } from "../utils/date";
 
 export const categories = [
   "Staples",
@@ -92,15 +93,17 @@ export const starterItems: PantryItem[] = [
   }
 ];
 
-export const emptyDraft: ItemDraft = {
-  name: "",
-  category: "Staples",
-  quantity: "1",
-  unit: "bags",
-  packageSize: "10 lb",
-  location: "Storage",
-  expiresOn: "",
-  barcode: "",
-  notes: "",
-  opened: false
-};
+export function makeEmptyDraft(): ItemDraft {
+  return {
+    name: "",
+    category: "Staples",
+    quantity: "1",
+    unit: "bags",
+    packageSize: "4 lb",
+    location: "Storage",
+    expiresOn: oneYearFromTodayISO(),
+    barcode: "",
+    notes: "",
+    opened: false
+  };
+}
