@@ -7,9 +7,9 @@ import {
 } from "expo-camera";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { md3 } from "../styles/globalStyles";
+import { md3, spacing } from "../styles/globalStyles";
 import { barcodeScannerStyles as styles } from "./BarcodeScannerScreen.styles";
 
 type BarcodeScannerScreenProps = {
@@ -33,6 +33,7 @@ const supportedBarcodeTypes: BarcodeType[] = [
 export function BarcodeScannerScreen({ onCancel, onScanned }: BarcodeScannerScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [hasScanned, setHasScanned] = useState(false);
+  const insets = useSafeAreaInsets();
 
   function handleScanned(result: BarcodeScanningResult) {
     if (hasScanned || !result.data) {
@@ -78,8 +79,8 @@ export function BarcodeScannerScreen({ onCancel, onScanned }: BarcodeScannerScre
         onBarcodeScanned={hasScanned ? undefined : handleScanned}
         style={styles.camera}
       />
-      <SafeAreaView style={styles.overlay}>
-        <View style={styles.header}>
+      <View style={styles.overlay}>
+        <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
           <Pressable onPress={onCancel} style={styles.closeButton} accessibilityLabel="Close scanner">
             <MaterialIcons name="close" size={22} color={md3.surfaceContainerLowest} />
           </Pressable>
@@ -91,7 +92,7 @@ export function BarcodeScannerScreen({ onCancel, onScanned }: BarcodeScannerScre
           <Text style={styles.footerTitle}>Scan barcode</Text>
           <Text style={styles.footerText}>Center the barcode inside the frame.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

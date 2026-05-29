@@ -1,19 +1,18 @@
-import { MaterialIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
   View
 } from "react-native";
 
-import { md3 } from "../styles/globalStyles";
+import { ChipGroup } from "../components/ChipGroup";
+import { ScreenHeader } from "../components/ScreenHeader";
 import type { PantryItem } from "../types/pantry";
-import { todayISO } from "../utils/date";
+import { addDaysToISO, todayISO } from "../utils/date";
 import { addPerishableStyles as styles } from "./AddPerishableScreen.styles";
 
 // ── Config ──────────────────────────────────────────────────────────────
@@ -24,24 +23,18 @@ const UNIT_OPTIONS = [
   { label: "Cartons", value: "cartons" }
 ];
 
-const LOCATION_OPTIONS = ["Fridge", "Freezer", "Counter", "Pantry"];
+const LOCATION_OPTIONS = ["Fridge", "Freezer", "Counter", "Pantry"].map((loc) => ({
+  label: loc,
+  value: loc
+}));
 
 const EXPIRY_OPTIONS = [
-  { label: "2 days", days: 2 },
-  { label: "3 days", days: 3 },
-  { label: "5 days", days: 5 },
-  { label: "1 week", days: 7 },
-  { label: "2 weeks", days: 14 }
+  { label: "2 days", value: "2" },
+  { label: "3 days", value: "3" },
+  { label: "5 days", value: "5" },
+  { label: "1 week", value: "7" },
+  { label: "2 weeks", value: "14" }
 ];
-
-function addDaysToISO(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
 
 // ── Component ────────────────────────────────────────────────────────────
 type AddPerishableScreenProps = {
@@ -54,7 +47,7 @@ export function AddPerishableScreen({ onGoBack, onSave }: AddPerishableScreenPro
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("items");
   const [location, setLocation] = useState("Fridge");
-  const [expiresInDays, setExpiresInDays] = useState(7);
+  const [expiresInDays, setExpiresInDays] = useState("7");
 
   function handleSave() {
     const trimmedName = name.trim();
@@ -78,7 +71,7 @@ export function AddPerishableScreen({ onGoBack, onSave }: AddPerishableScreenPro
       unit,
       packageSize: "",
       location,
-      expiresOn: addDaysToISO(expiresInDays),
+      expiresOn: addDaysToISO(Number(expiresInDays)),
       barcode: "",
       notes: "",
       opened: false
@@ -92,25 +85,19 @@ export function AddPerishableScreen({ onGoBack, onSave }: AddPerishableScreenPro
       style={styles.shell}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={onGoBack}>
-          <MaterialIcons name="chevron-left" size={24} color={md3.onSurfaceVariant} />
-          <Text style={styles.backLabel}>Back</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Add Perishable</Text>
-        <Pressable style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        variant="bar"
+        title="Add Perishable"
+        backLabel="Back"
+        onBack={onGoBack}
+        rightAction={{ label: "Save", onPress: handleSave }}
+      />
 
-      {/* Form */}
       <ScrollView
         style={styles.formScroll}
         contentContainerStyle={styles.formContent}
         keyboardShouldPersistTaps="handled"
       >
-
         {/* Name */}
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Name</Text>
@@ -118,7 +105,7 @@ export function AddPerishableScreen({ onGoBack, onSave }: AddPerishableScreenPro
             value={name}
             onChangeText={setName}
             placeholder="e.g. Spinach, Bananas, Tomatoes"
-            placeholderTextColor={md3.onSurfaceVariant}
+            placeholderTextColor="#9E9E9E"
             style={styles.textInput}
             autoFocus
             returnKeyType="done"
@@ -136,60 +123,21 @@ export function AddPerishableScreen({ onGoBack, onSave }: AddPerishableScreenPro
               style={styles.quantityInput}
               returnKeyType="done"
             />
-            <View style={styles.chipRow}>
-              {UNIT_OPTIONS.map((opt) => (
-                <Pressable
-                  key={opt.value}
-                  style={[styles.chip, unit === opt.value && styles.chipActive]}
-                  onPress={() => setUnit(opt.value)}
-                >
-                  <Text style={[styles.chipText, unit === opt.value && styles.chipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <ChipGroup options={UNIT_OPTIONS} value={unit} onSelect={setUnit} />
           </View>
         </View>
 
         {/* Location */}
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Storage Location</Text>
-          <View style={styles.chipRow}>
-            {LOCATION_OPTIONS.map((loc) => (
-              <Pressable
-                key={loc}
-                style={[styles.chip, location === loc && styles.chipActive]}
-                onPress={() => setLocation(loc)}
-              >
-                <Text style={[styles.chipText, location === loc && styles.chipTextActive]}>
-                  {loc}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <ChipGroup options={LOCATION_OPTIONS} value={location} onSelect={setLocation} />
         </View>
 
         {/* Expires in */}
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Expires In</Text>
-          <View style={styles.chipRow}>
-            {EXPIRY_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.days}
-                style={[styles.chip, expiresInDays === opt.days && styles.chipActive]}
-                onPress={() => setExpiresInDays(opt.days)}
-              >
-                <Text
-                  style={[styles.chipText, expiresInDays === opt.days && styles.chipTextActive]}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <ChipGroup options={EXPIRY_OPTIONS} value={expiresInDays} onSelect={setExpiresInDays} />
         </View>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );

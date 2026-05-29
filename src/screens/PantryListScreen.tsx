@@ -2,10 +2,11 @@ import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
-import { filters } from "../constants/pantry";
-import { md3 } from "../styles/globalStyles";
+import { ChipGroup } from "../components/ChipGroup";
 import { PantryCard } from "../components/PantryCard";
-import type { FilterKey, HomeView, PantryItem } from "../types/pantry";
+import { ScreenHeader } from "../components/ScreenHeader";
+import { filters } from "../constants/pantry";
+import type { FilterKey, PantryItem } from "../types/pantry";
 import { pantryListStyles as styles } from "./PantryListScreen.styles";
 
 type PantryListScreenProps = {
@@ -38,20 +39,17 @@ export function PantryListScreen({
       ? "Items with quantity 1 or less will show up here."
       : "Add an item or clear your filters to see more.";
 
+  const filterOptions = filters.map((f) => ({ label: f.label, value: f.key }));
+
   return (
     <View style={styles.appShell}>
+      <ScreenHeader
+        title={title}
+        backLabel="Home"
+        eyebrow="Home Stock"
+        onBack={onGoHome}
+      />
 
-      {/* ── Header with back chevron ── */}
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={onGoHome}>
-          <MaterialIcons name="chevron-left" size={26} color={md3.primary} />
-          <Text style={styles.backLabel}>Home</Text>
-        </Pressable>
-        <Text style={styles.eyebrow}>Home Stock</Text>
-        <Text style={styles.title}>{title}</Text>
-      </View>
-
-      {/* ── Content ── */}
       <View style={styles.content}>
         {view === "find" ? (
           <>
@@ -59,30 +57,15 @@ export function PantryListScreen({
               value={query}
               onChangeText={onChangeQuery}
               placeholder="Search item, category, location"
-              placeholderTextColor={md3.onSurfaceVariant}
+              placeholderTextColor="#9E9E9E"
               style={styles.searchInput}
             />
-
             <View style={styles.filterRow}>
-              {filters.map((option) => (
-                <Pressable
-                  key={option.key}
-                  onPress={() => onChangeFilter(option.key)}
-                  style={[
-                    styles.filterButton,
-                    filter === option.key && styles.filterButtonActive
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.filterButtonText,
-                      filter === option.key && styles.filterButtonTextActive
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
+              <ChipGroup
+                options={filterOptions}
+                value={filter}
+                onSelect={(v) => onChangeFilter(v as FilterKey)}
+              />
             </View>
           </>
         ) : null}

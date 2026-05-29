@@ -1,6 +1,8 @@
 import { StyleSheet } from "react-native";
 
-import { elevation, md3, radii, spacing } from "../styles/globalStyles";
+import { md3, radii, spacing } from "../styles/globalStyles";
+// Header styles removed — now handled by ScreenHeader component
+// Filter-button/chip styles removed — now handled by ChipGroup component
 
 export const pantryListStyles = StyleSheet.create({
 
@@ -12,74 +14,6 @@ export const pantryListStyles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.xl
-  },
-
-  // ── Header with back chevron ──────────────────────────────────────────
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md
-  },
-  backButton: {
-    alignItems: "center",
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    gap: 4,
-    marginBottom: spacing.sm,
-    paddingVertical: 4
-  },
-  backLabel: {
-    color: md3.primary,
-    fontSize: 14,
-    fontWeight: "500",
-    letterSpacing: 0.1
-  },
-  eyebrow: {
-    color: md3.primary,
-    fontSize: 12,
-    fontWeight: "500",
-    letterSpacing: 0.5,
-    textTransform: "uppercase"
-  },
-  title: {
-    color: md3.onBackground,
-    fontSize: 28,
-    fontWeight: "400",
-    letterSpacing: 0,
-    marginTop: 2
-  },
-
-  // ── Stats row ─────────────────────────────────────────────────────────
-  statsRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-    marginTop: spacing.sm
-  },
-  statCard: {
-    backgroundColor: md3.surfaceContainerLow,
-    borderRadius: radii.md,
-    flex: 1,
-    padding: 14,
-    ...elevation.level1
-  },
-  statWarning: {
-    backgroundColor: md3.warningContainer
-  },
-  statDanger: {
-    backgroundColor: md3.errorContainer
-  },
-  statValue: {
-    color: md3.onSurface,
-    fontSize: 24,
-    fontWeight: "600"
-  },
-  statLabel: {
-    color: md3.onSurfaceVariant,
-    fontSize: 12,
-    fontWeight: "500",
-    letterSpacing: 0.5,
-    marginTop: 2
   },
 
   // ── Search & filters ──────────────────────────────────────────────────
@@ -94,31 +28,7 @@ export const pantryListStyles = StyleSheet.create({
     paddingVertical: 14
   },
   filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
     marginTop: spacing.md
-  },
-  filterButton: {
-    backgroundColor: "transparent",
-    borderColor: md3.outlineVariant,
-    borderRadius: radii.round,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8
-  },
-  filterButtonActive: {
-    backgroundColor: md3.secondaryContainer,
-    borderColor: "transparent"
-  },
-  filterButtonText: {
-    color: md3.onSurfaceVariant,
-    fontSize: 14,
-    fontWeight: "500",
-    letterSpacing: 0.1
-  },
-  filterButtonTextActive: {
-    color: md3.onSecondaryContainer
   },
 
   // ── Item list ─────────────────────────────────────────────────────────
@@ -145,6 +55,5 @@ export const pantryListStyles = StyleSheet.create({
     lineHeight: 20,
     marginTop: spacing.sm,
     textAlign: "center"
-  },
-
+  }
 });

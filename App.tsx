@@ -131,7 +131,16 @@ const shoppingItems = useMemo(
   }
 
   function addItem(item: PantryItem) {
-    setItems((prev) => [item, ...prev]);
+    const incomingKey = item.name.trim().toLowerCase();
+    setItems((prev) => {
+      const existing = prev.find((i) => i.name.trim().toLowerCase() === incomingKey);
+      if (existing) {
+        return prev.map((i) =>
+          i.id === existing.id ? { ...i, quantity: i.quantity + item.quantity } : i
+        );
+      }
+      return [item, ...prev];
+    });
   }
 
   function useOneItem(item: PantryItem) {

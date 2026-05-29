@@ -74,8 +74,7 @@ export const barcodeScannerStyles = StyleSheet.create({
   },
   header: {
     alignItems: "flex-end",
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg
+    paddingHorizontal: spacing.xl
   },
 
   // Icon-only close button (40dp touch target)

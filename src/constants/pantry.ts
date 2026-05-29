@@ -95,6 +95,7 @@ export const starterItems: PantryItem[] = [
 
 export function makeEmptyDraft(): ItemDraft {
   return {
+    addedOn: "",
     name: "",
     category: "Staples",
     quantity: "1",

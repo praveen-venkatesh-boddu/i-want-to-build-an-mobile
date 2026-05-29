@@ -1,45 +1,12 @@
 import { StyleSheet } from "react-native";
 
 import { elevation, md3, radii, spacing } from "../styles/globalStyles";
+// Header styles removed — now handled by ScreenHeader component
 
 export const addChoiceStyles = StyleSheet.create({
   shell: {
     flex: 1,
     backgroundColor: md3.background
-  },
-
-  // ── Header ────────────────────────────────────────────────────────────
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg
-  },
-  backButton: {
-    alignItems: "center",
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    gap: 4,
-    marginBottom: spacing.sm,
-    paddingVertical: 4
-  },
-  backLabel: {
-    color: md3.primary,
-    fontSize: 14,
-    fontWeight: "500",
-    letterSpacing: 0.1
-  },
-  title: {
-    color: md3.onBackground,
-    fontSize: 28,
-    fontWeight: "400",
-    letterSpacing: 0
-  },
-  subtitle: {
-    color: md3.onSurfaceVariant,
-    fontSize: 14,
-    fontWeight: "400",
-    letterSpacing: 0.25,
-    marginTop: 4
   },
 
   // ── Option cards ──────────────────────────────────────────────────────
