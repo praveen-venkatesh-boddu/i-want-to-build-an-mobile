@@ -39,6 +39,24 @@ export function daysUntil(dateValue: string) {
   return Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
 }
 
+export function addMonthsToISO(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return formatDate(d);
+}
+
+/** "Jun 3" or "Jan 15, 2027" (adds year when different from current). */
+export function formatShortDate(dateString: string): string {
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateString;
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" })
+  });
+}
+
 export function getStatusLabel(days: number, dateValue: string) {
   if (!dateValue) return "No date";
   if (days < 0) return "Expired";

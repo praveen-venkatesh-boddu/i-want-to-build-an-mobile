@@ -1,6 +1,6 @@
 export type PantryItem = {
   id: string;
-  addedOn: string;  // ISO date "YYYY-MM-DD"
+  addedOn: string;       // ISO date "YYYY-MM-DD"
   name: string;
   category: string;
   quantity: number;
@@ -11,6 +11,7 @@ export type PantryItem = {
   barcode: string;
   notes: string;
   opened: boolean;
+  deferredUntil?: string; // ISO date — item hidden from active shopping list until this date
 };
 
 export type ItemDraft = Omit<PantryItem, "id" | "quantity" | "opened"> & {
@@ -19,6 +20,8 @@ export type ItemDraft = Omit<PantryItem, "id" | "quantity" | "opened"> & {
 };
 
 export type FilterKey = "all" | "expiring" | "low" | "opened";
+
+export type SnoozePeriod = "15d" | "1m" | "2m";
 
 export type HomeView = "home" | "find" | "shopping" | "add" | "add-perishable" | "add-item" | "edit-item";
 

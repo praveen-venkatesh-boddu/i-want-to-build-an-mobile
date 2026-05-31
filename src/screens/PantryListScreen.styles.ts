@@ -31,6 +31,17 @@ export const pantryListStyles = StyleSheet.create({
     marginTop: spacing.md
   },
 
+  // ── Snoozed section header ────────────────────────────────────────────
+  snoozedHeader: {
+    color: md3.onSurfaceVariant,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.8,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
+    textTransform: "uppercase"
+  },
+
   // ── Item list ─────────────────────────────────────────────────────────
   listContent: {
     gap: spacing.sm,

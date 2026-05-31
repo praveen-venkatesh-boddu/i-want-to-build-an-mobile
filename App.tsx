@@ -5,16 +5,20 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { makeEmptyDraft, PERISHABLE_CATEGORIES, starterItems } from "./src/constants/pantry";
 import { loadPantryItems, savePantryItems } from "./src/storage/pantryStorage";
+import {
+  cancelDeferReminder,
+  requestNotificationPermissions,
+  scheduleDeferReminder
+} from "./src/services/notifications";
 import { globalStyles } from "./src/styles/globalStyles";
-import { daysSince, daysUntil, todayISO } from "./src/utils/date";
+import { addMonthsToISO, daysSince, daysUntil, todayISO } from "./src/utils/date";
 import { BottomNavBar } from "./src/components/BottomNavBar";
 import { AddChoiceScreen } from "./src/screens/AddChoiceScreen";
 import { AddPerishableScreen } from "./src/screens/AddPerishableScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { ItemEditorScreen } from "./src/screens/ItemEditorScreen";
 import { PantryListScreen } from "./src/screens/PantryListScreen";
-import type { FilterKey, HomeView, ItemDraft, PantryItem } from "./src/types/pantry";
-
+import type { FilterKey, HomeView, ItemDraft, PantryItem, SnoozePeriod } from "./src/types/pantry";
 
 export default function App() {
   const [items, setItems] = useState<PantryItem[]>(starterItems);
@@ -26,6 +30,11 @@ export default function App() {
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const editReturnView = useRef<HomeView>("find");
   const [hasLoaded, setHasLoaded] = useState(false);
+
+  // ── Permissions ────────────────────────────────────────────────────────
+  useEffect(() => {
+    void requestNotificationPermissions();
+  }, []);
 
   // ── Persistence ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -43,9 +52,24 @@ export default function App() {
   }, [hasLoaded, items]);
 
   // ── Derived data ───────────────────────────────────────────────────────
-const shoppingItems = useMemo(
-    () => items.filter((i) => i.quantity === 0 && i.opened).sort((a, b) => a.name.localeCompare(b.name)),
-    [items]
+  const today = todayISO();
+
+  /** Items that need buying now (not snoozed). */
+  const activeShoppingItems = useMemo(
+    () =>
+      items
+        .filter((i) => i.quantity === 0 && i.opened && (!i.deferredUntil || i.deferredUntil <= today))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [items, today]
+  );
+
+  /** Items that have been snoozed until a future date. */
+  const deferredShoppingItems = useMemo(
+    () =>
+      items
+        .filter((i) => i.quantity === 0 && i.opened && i.deferredUntil && i.deferredUntil > today)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [items, today]
   );
 
   const visibleItems = useMemo(() => {
@@ -154,14 +178,33 @@ const shoppingItems = useMemo(
     );
   }
 
+  function deferItem(item: PantryItem, period: SnoozePeriod) {
+    const deferredUntil =
+      period === "15d" ? addDaysToISO(15) :
+      period === "1m"  ? addMonthsToISO(1) :
+                         addMonthsToISO(2);
+    setItems((prev) =>
+      prev.map((i) => (i.id === item.id ? { ...i, deferredUntil } : i))
+    );
+    void scheduleDeferReminder(item.id, item.name, deferredUntil);
+  }
+
+  function undeferItem(item: PantryItem) {
+    setItems((prev) =>
+      prev.map((i) => (i.id === item.id ? { ...i, deferredUntil: undefined } : i))
+    );
+    void cancelDeferReminder(item.id);
+  }
+
   function removeItem(id: string) {
+    void cancelDeferReminder(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
     setEditingItem(null);
     setHomeView(editReturnView.current);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
-  const screenItems = homeView === "shopping" ? shoppingItems : visibleItems;
+  const screenItems = homeView === "shopping" ? activeShoppingItems : visibleItems;
 
   return (
     <SafeAreaProvider>
@@ -171,7 +214,7 @@ const shoppingItems = useMemo(
         {/* ── Screens ── */}
         {homeView === "home" && (
           <HomeScreen
-            shoppingItems={shoppingItems}
+            shoppingItems={activeShoppingItems}
             expiringCount={expiringCount}
             perishablesCount={perishablesCount}
             onGoToShopping={() => setHomeView("shopping")}
@@ -183,13 +226,15 @@ const shoppingItems = useMemo(
           <PantryListScreen
             filter={filter}
             items={screenItems}
+            deferredItems={homeView === "shopping" ? deferredShoppingItems : undefined}
             query={query}
-
             view={homeView}
             onChangeFilter={setFilter}
             onChangeQuery={setQuery}
             onEditItem={openEditItem}
             onUseOneItem={useOneItem}
+            onDeferItem={deferItem}
+            onUndeferItem={undeferItem}
             onGoHome={() => setHomeView("home")}
           />
         )}
