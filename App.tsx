@@ -130,7 +130,7 @@ export default function App() {
   const sheetItem = useMemo(() => items.find((i) => i.id === sheetId) ?? null, [items, sheetId]);
 
   // ── Item sheet actions ────────────────────────────────────────────────
-  function stepItem(item: PantryItem, delta: 1 | -1) {
+  function stepItem(item: PantryItem, delta: number) {
     const newQty = Math.max(0, item.quantity + delta);
     if (newQty > 0 && item.deferredUntil) void cancelDeferReminder(item.id);
     setItems((prev) =>
