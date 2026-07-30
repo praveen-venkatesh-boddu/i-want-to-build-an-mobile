@@ -9,7 +9,7 @@ import { FadeRule } from "./FadeRule";
 type ItemSheetProps = {
   item: PantryItem | null;
   onClose: () => void;
-  onStep: (item: PantryItem, delta: 1 | -1) => void;
+  onStep: (item: PantryItem, delta: number) => void;
   onToggleOpened: (item: PantryItem) => void;
   onSnooze: (item: PantryItem) => void;
   onUnsnooze: (item: PantryItem) => void;
