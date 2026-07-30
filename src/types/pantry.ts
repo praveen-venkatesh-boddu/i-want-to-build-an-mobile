@@ -11,7 +11,10 @@ export type PantryItem = {
   barcode: string;
   notes: string;
   opened: boolean;
-  deferredUntil?: string; // ISO date — item hidden from active shopping list until this date
+  deferredUntil?: string; // ISO date — item hidden from the buy list until this date ("snoozed")
+  par?: number;            // target stock — drives the shelves gauge and the run's "wanted" amount
+  addedBy?: string;        // household member who added the item, shown on run rows
+  ranOutOn?: string;       // ISO date set when quantity hits 0 — drives the List screen's "how long" column
 };
 
 export type ItemDraft = Omit<PantryItem, "id" | "quantity" | "opened"> & {
@@ -21,9 +24,7 @@ export type ItemDraft = Omit<PantryItem, "id" | "quantity" | "opened"> & {
 
 export type FilterKey = "all" | "expiring" | "low" | "opened";
 
-export type SnoozePeriod = "15d" | "1m" | "2m";
-
-export type HomeView = "home" | "find" | "shopping" | "add" | "add-perishable" | "add-item" | "edit-item";
+export type Screen = "list" | "run" | "shelves" | "expiring" | "search" | "scan";
 
 export type PantryStats = {
   total: number;

@@ -1,11 +1,11 @@
 import { StyleSheet } from "react-native";
 
-import { elevation, md3, radii, spacing } from "../styles/globalStyles";
+import { colors, radii, shadowMd, space } from "../styles/globalStyles";
 
 export const itemEditorStyles = StyleSheet.create({
   modalSafeArea: {
     flex: 1,
-    backgroundColor: md3.background
+    backgroundColor: colors.bg
   },
   modalShell: {
     flex: 1
@@ -14,63 +14,58 @@ export const itemEditorStyles = StyleSheet.create({
   // ── Modal header ──────────────────────────────────────────────────────
   modalHeader: {
     alignItems: "center",
-    backgroundColor: md3.surfaceContainerLow,
-    borderBottomColor: md3.outlineVariant,
+    backgroundColor: colors.surface,
+    borderBottomColor: colors.neutral800,
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: space.xl,
     paddingVertical: 14
   },
   modalTitle: {
-    // M3 Title Large
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 20,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0
   },
 
-  // M3 Text Button
   secondaryButton: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: space.sm,
     paddingVertical: 10
   },
   secondaryButtonText: {
-    // M3 Label Large
-    color: md3.onSurfaceVariant,
+    color: colors.neutral400,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
-  // M3 Filled Button
   saveButton: {
-    backgroundColor: md3.primary,
-    borderRadius: radii.round,
-    paddingHorizontal: spacing.xl,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    paddingHorizontal: space.xl,
     paddingVertical: 10
   },
   saveButtonText: {
-    // M3 Label Large
-    color: md3.onPrimary,
+    color: colors.accent,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
   // ── Form ──────────────────────────────────────────────────────────────
   formContent: {
-    padding: spacing.xl,
+    padding: space.xl,
     paddingBottom: 40
   },
   field: {
-    marginBottom: spacing.lg
+    marginBottom: space.lg
   },
   fieldLabel: {
-    // M3 Label Medium
-    color: md3.onSurfaceVariant,
+    color: colors.neutral400,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.5,
     marginBottom: 8,
     textTransform: "uppercase"
@@ -81,60 +76,60 @@ export const itemEditorStyles = StyleSheet.create({
   },
   barcodeRow: {
     flexDirection: "row",
-    gap: spacing.md
+    gap: space.md
   },
   barcodeInput: {
     flex: 1
   },
 
-  // M3 Filled Button (primary action) — icon + label row
   scanButton: {
     alignItems: "center",
-    backgroundColor: md3.primary,
-    borderRadius: radii.round,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.neutral800,
     flexDirection: "row",
     gap: 6,
     justifyContent: "center",
     minHeight: 48,
-    paddingHorizontal: spacing.lg
+    paddingHorizontal: space.lg
   },
   scanButtonText: {
-    color: md3.onPrimary,
+    color: colors.neutral300,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
-  // M3 Tonal Button (secondary action) — icon + label row
   lookupButton: {
     alignItems: "center",
-    backgroundColor: md3.secondaryContainer,
-    borderRadius: radii.round,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.neutral800,
     flexDirection: "row",
     gap: 6,
     justifyContent: "center",
     minHeight: 48,
-    paddingHorizontal: spacing.md
+    paddingHorizontal: space.md
   },
   lookupButtonDisabled: {
     opacity: 0.38
   },
   lookupButtonText: {
-    color: md3.onSecondaryContainer,
+    color: colors.neutral300,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
   scanMessage: {
-    color: md3.primary,
+    color: colors.accent300,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.4,
-    marginTop: spacing.sm
+    marginTop: space.sm
   },
   packageDetailsRow: {
     flexDirection: "row",
-    gap: spacing.md
+    gap: space.md
   },
   quantityField: {
     flex: 0.75
@@ -146,17 +141,17 @@ export const itemEditorStyles = StyleSheet.create({
     flex: 1.3
   },
   pkgSizeRow: {
-    backgroundColor: md3.surfaceContainerLowest,
-    borderColor: md3.outline,
+    backgroundColor: colors.surface,
+    borderColor: colors.neutral800,
     borderRadius: radii.md,
     borderWidth: 1,
     flexDirection: "row",
     overflow: "hidden"
   },
   pkgAmountInput: {
-    borderRightColor: md3.outlineVariant,
+    borderRightColor: colors.neutral800,
     borderRightWidth: 1,
-    color: md3.onSurface,
+    color: colors.text,
     flex: 1,
     fontSize: 16,
     paddingHorizontal: 16,
@@ -172,16 +167,15 @@ export const itemEditorStyles = StyleSheet.create({
     width: 70
   },
   pkgUnitText: {
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 15
   },
 
   // ── Dropdown ──────────────────────────────────────────────────────────
-  // M3 Outlined TextField (dropdown trigger)
   dropdownButton: {
     alignItems: "center",
-    backgroundColor: md3.surfaceContainerLowest,
-    borderColor: md3.outline,
+    backgroundColor: colors.surface,
+    borderColor: colors.neutral800,
     borderRadius: radii.md,
     borderWidth: 1,
     flexDirection: "row",
@@ -191,28 +185,25 @@ export const itemEditorStyles = StyleSheet.create({
     paddingVertical: 12
   },
   dropdownText: {
-    // M3 Body Large
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 16,
     fontWeight: "400"
   },
-  // dropdownIcon is now a MaterialIcons component — no text style needed
 
-  // M3 Menu surface
   dropdownMenu: {
-    backgroundColor: md3.surfaceContainerLowest,
+    backgroundColor: colors.surface,
     borderRadius: radii.md,
-    marginBottom: spacing.lg,
-    marginTop: -spacing.sm,
+    marginBottom: space.lg,
+    marginTop: -space.sm,
     maxHeight: 260,
     overflow: "hidden",
-    ...elevation.level2
+    ...shadowMd
   },
   dropdownSearchInput: {
-    backgroundColor: md3.surfaceContainerLowest,
-    borderBottomColor: md3.outlineVariant,
+    backgroundColor: colors.surface,
+    borderBottomColor: colors.neutral800,
     borderBottomWidth: 1,
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 12
@@ -222,7 +213,7 @@ export const itemEditorStyles = StyleSheet.create({
     paddingVertical: 14
   },
   dropdownEmptyText: {
-    color: md3.onSurfaceVariant,
+    color: colors.neutral400,
     fontSize: 14,
     fontWeight: "400"
   },
@@ -231,7 +222,7 @@ export const itemEditorStyles = StyleSheet.create({
   },
   dropdownOption: {
     alignItems: "center",
-    borderBottomColor: md3.outlineVariant,
+    borderBottomColor: colors.neutral800,
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -239,69 +230,62 @@ export const itemEditorStyles = StyleSheet.create({
     paddingVertical: 12
   },
   dropdownOptionActive: {
-    backgroundColor: md3.secondaryContainer
+    backgroundColor: colors.accentTint14
   },
   dropdownOptionText: {
-    // M3 Body Large
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 15,
     fontWeight: "400"
   },
   dropdownOptionMeta: {
-    color: md3.onSurfaceVariant,
+    color: colors.neutral400,
     fontSize: 13,
     fontWeight: "400"
   },
   dropdownOptionTextActive: {
-    color: md3.onSecondaryContainer,
-    fontWeight: "500"
+    color: colors.accent300,
+    fontFamily: "Inter_500Medium", fontWeight: "500"
   },
 
   // ── Checkbox / Toggle ─────────────────────────────────────────────────
   openedToggle: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md,
-    marginTop: spacing.xs
+    gap: space.md,
+    marginTop: space.xs
   },
-
-  // M3 Checkbox style
   checkbox: {
     alignItems: "center",
     backgroundColor: "transparent",
-    borderColor: md3.onSurfaceVariant,
-    borderRadius: radii.extraSmall,
+    borderColor: colors.neutral600,
+    borderRadius: radii.sm,
     borderWidth: 2,
     height: 24,
     justifyContent: "center",
     width: 24
   },
   checkboxActive: {
-    backgroundColor: md3.primary,
-    borderColor: md3.primary
+    backgroundColor: colors.accent700,
+    borderColor: colors.accent700
   },
-  // checkboxMark is now a MaterialIcons "check" icon — no text style needed
   openedToggleText: {
-    // M3 Body Large
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 16,
     fontWeight: "400"
   },
 
-  // M3 Outlined destructive button (shown only when editing)
   deleteButton: {
     alignItems: "center",
-    borderColor: md3.error,
-    borderRadius: radii.round,
+    borderColor: colors.danger,
+    borderRadius: radii.md,
     borderWidth: 1,
-    marginTop: spacing.xxl,
+    marginTop: space.xxl,
     paddingVertical: 14
   },
   deleteButtonText: {
-    // M3 Label Large in error color
-    color: md3.error,
+    color: colors.danger,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   }
 });

@@ -1,70 +1,96 @@
+import {
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  useFonts
+} from "@expo-google-fonts/inter";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-import { makeEmptyDraft, PERISHABLE_CATEGORIES, starterItems } from "./src/constants/pantry";
-import { loadPantryItems, savePantryItems } from "./src/storage/pantryStorage";
+import "./src/styles/interFont";
+import { BottomNavBar } from "./src/components/BottomNavBar";
+import { HouseholdSheet } from "./src/components/HouseholdSheet";
+import { ItemSheet } from "./src/components/ItemSheet";
+import { Toast } from "./src/components/Toast";
+import { filters, groupForLocation, makeEmptyDraft, starterItems } from "./src/constants/pantry";
 import {
   cancelDeferReminder,
   requestNotificationPermissions,
   scheduleDeferReminder
 } from "./src/services/notifications";
-import { globalStyles } from "./src/styles/globalStyles";
-import { addMonthsToISO, daysSince, daysUntil, todayISO } from "./src/utils/date";
-import { BottomNavBar } from "./src/components/BottomNavBar";
-import { AddChoiceScreen } from "./src/screens/AddChoiceScreen";
-import { AddPerishableScreen } from "./src/screens/AddPerishableScreen";
-import { HomeScreen } from "./src/screens/HomeScreen";
+import { ExpiringScreen } from "./src/screens/ExpiringScreen";
 import { ItemEditorScreen } from "./src/screens/ItemEditorScreen";
-import { PantryListScreen } from "./src/screens/PantryListScreen";
-import type { FilterKey, HomeView, ItemDraft, PantryItem, SnoozePeriod } from "./src/types/pantry";
+import { ListScreen } from "./src/screens/ListScreen";
+import { RunScreen } from "./src/screens/RunScreen";
+import { ScanScreen } from "./src/screens/ScanScreen";
+import { SearchScreen } from "./src/screens/SearchScreen";
+import { ShelvesScreen } from "./src/screens/ShelvesScreen";
+import { loadBasket, loadPantryItems, savePantryItems, saveBasket } from "./src/storage/pantryStorage";
+import { globalStyles } from "./src/styles/globalStyles";
+import { addDaysToISO, daysSince, daysUntil, todayISO } from "./src/utils/date";
+import type { FilterKey, ItemDraft, PantryItem, Screen } from "./src/types/pantry";
 
 export default function App() {
+  const [fontsLoaded] = useFonts({ Inter_300Light, Inter_400Regular, Inter_500Medium });
+
   const [items, setItems] = useState<PantryItem[]>(starterItems);
-  const [homeView, setHomeView] = useState<HomeView>("home");
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [basket, setBasket] = useState<Record<string, boolean>>({});
+  const [basketLoaded, setBasketLoaded] = useState(false);
+
+  const [screen, setScreen] = useState<Screen>("list");
+  const [running, setRunning] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [sheetId, setSheetId] = useState<string | null>(null);
+  const [householdOpen, setHouseholdOpen] = useState(false);
+  const [toast, setToast] = useState("");
+
   const [draft, setDraft] = useState<ItemDraft>(makeEmptyDraft);
-
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
-  const editReturnView = useRef<HomeView>("find");
-  const [hasLoaded, setHasLoaded] = useState(false);
 
-  // ── Permissions ────────────────────────────────────────────────────────
+  // ── Permissions & persistence ────────────────────────────────────────────
   useEffect(() => {
     void requestNotificationPermissions();
   }, []);
 
-  // ── Persistence ────────────────────────────────────────────────────────
   useEffect(() => {
     loadPantryItems()
       .then((stored) => { if (stored) setItems(stored); })
-      .catch(() => Alert.alert("Storage issue", "Pantry Pocket could not load saved items."))
+      .catch(() => Alert.alert("Storage issue", "Home Stock could not load saved items."))
       .finally(() => setHasLoaded(true));
+    loadBasket()
+      .then((stored) => { if (stored) setBasket(stored); })
+      .catch(() => {})
+      .finally(() => setBasketLoaded(true));
   }, []);
 
   useEffect(() => {
     if (!hasLoaded) return;
     savePantryItems(items).catch(() =>
-      Alert.alert("Storage issue", "Pantry Pocket could not save your latest changes.")
+      Alert.alert("Storage issue", "Home Stock could not save your latest changes.")
     );
   }, [hasLoaded, items]);
+
+  useEffect(() => {
+    if (!basketLoaded) return;
+    void saveBasket(basket);
+  }, [basketLoaded, basket]);
 
   // ── Derived data ───────────────────────────────────────────────────────
   const today = todayISO();
 
-  /** Items that need buying now (not snoozed). */
-  const activeShoppingItems = useMemo(
+  const buyList = useMemo(
     () =>
       items
         .filter((i) => i.quantity === 0 && i.opened && (!i.deferredUntil || i.deferredUntil <= today))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        .sort((a, b) => daysSince(b.ranOutOn ?? "") - daysSince(a.ranOutOn ?? "")),
     [items, today]
   );
 
-  /** Items that have been snoozed until a future date. */
-  const deferredShoppingItems = useMemo(
+  const snoozedItems = useMemo(
     () =>
       items
         .filter((i) => i.quantity === 0 && i.opened && i.deferredUntil && i.deferredUntil > today)
@@ -72,14 +98,26 @@ export default function App() {
     [items, today]
   );
 
-  const visibleItems = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  const expiringItems = useMemo(
+    () =>
+      items
+        .filter((i) => i.quantity > 0 && daysUntil(i.expiresOn) <= 7)
+        .sort((a, b) => daysUntil(a.expiresOn) - daysUntil(b.expiresOn)),
+    [items]
+  );
+
+  const shelvesCount = useMemo(
+    () => new Set(items.map((i) => groupForLocation(i.location))).size,
+    [items]
+  );
+
+  const runSource = useMemo(
+    () => [...buyList, ...items.filter((i) => basket[i.id] && i.deferredUntil && i.deferredUntil > today)],
+    [buyList, items, basket, today]
+  );
+
+  const shelvesFiltered = useMemo(() => {
     return items
-      .filter((item) => {
-        if (!q) return true;
-        return [item.name, item.category, item.location, item.notes, item.unit, item.packageSize]
-          .join(" ").toLowerCase().includes(q);
-      })
       .filter((item) => {
         if (filter === "expiring") return daysUntil(item.expiresOn) <= 7;
         if (filter === "low") return item.quantity === 0 && item.opened;
@@ -87,21 +125,43 @@ export default function App() {
         return true;
       })
       .sort((a, b) => daysUntil(a.expiresOn) - daysUntil(b.expiresOn));
-  }, [filter, items, query]);
+  }, [filter, items]);
 
-  const expiringCount = useMemo(
-    () => items.filter((i) => daysUntil(i.expiresOn) <= 7).length,
-    [items]
-  );
-  const perishablesCount = useMemo(
-    () => items.filter(
-      (i) => PERISHABLE_CATEGORIES.includes(i.category) && daysSince(i.addedOn) > 7
-    ).length,
-    [items]
-  );
+  const sheetItem = useMemo(() => items.find((i) => i.id === sheetId) ?? null, [items, sheetId]);
 
-  // ── Actions ────────────────────────────────────────────────────────────
-  function openEditItem(item: PantryItem) {
+  // ── Item sheet actions ────────────────────────────────────────────────
+  function stepItem(item: PantryItem, delta: 1 | -1) {
+    const newQty = Math.max(0, item.quantity + delta);
+    if (newQty > 0 && item.deferredUntil) void cancelDeferReminder(item.id);
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.id !== item.id) return i;
+        if (newQty === 0) {
+          return { ...i, quantity: 0, opened: true, ranOutOn: i.quantity > 0 ? today : i.ranOutOn };
+        }
+        return { ...i, quantity: newQty, deferredUntil: undefined, ranOutOn: undefined };
+      })
+    );
+  }
+
+  function toggleOpened(item: PantryItem) {
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, opened: !i.opened } : i)));
+  }
+
+  function snoozeItem(item: PantryItem) {
+    const deferredUntil = addDaysToISO(15);
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, deferredUntil } : i)));
+    void scheduleDeferReminder(item.id, item.name, deferredUntil);
+    flashToast(`${item.name} snoozed for 15 days.`);
+    setSheetId(null);
+  }
+
+  function unsnoozeItem(item: PantryItem) {
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, deferredUntil: undefined } : i)));
+    void cancelDeferReminder(item.id);
+  }
+
+  function editDetails(item: PantryItem) {
     setDraft({
       addedOn: item.addedOn,
       name: item.name,
@@ -116,23 +176,7 @@ export default function App() {
       opened: item.opened
     });
     setEditingItem(item);
-    editReturnView.current = homeView;
-    setHomeView("edit-item");
-  }
-
-  function saveNewItem() {
-    const name = draft.name.trim();
-    const quantity = Number(draft.quantity);
-    if (!name) { Alert.alert("Name required", "Add a name before saving."); return; }
-    if (!Number.isFinite(quantity) || quantity < 0) { Alert.alert("Quantity required", "Use 0 or higher."); return; }
-    if (draft.expiresOn && Number.isNaN(Date.parse(`${draft.expiresOn}T00:00:00`))) {
-      Alert.alert("Check the date", "Use YYYY-MM-DD for expiry dates."); return;
-    }
-    addItem({ id: `${Date.now()}`, addedOn: todayISO(), name, category: draft.category,
-      quantity, unit: draft.unit.trim() || "item", packageSize: draft.packageSize.trim(),
-      location: draft.location.trim() || "Storage", expiresOn: draft.expiresOn.trim(),
-      barcode: draft.barcode.trim(), notes: draft.notes.trim(), opened: draft.opened });
-    setHomeView("home");
+    setSheetId(null);
   }
 
   function saveEditedItem() {
@@ -144,145 +188,236 @@ export default function App() {
     if (draft.expiresOn && Number.isNaN(Date.parse(`${draft.expiresOn}T00:00:00`))) {
       Alert.alert("Check the date", "Use YYYY-MM-DD for expiry dates."); return;
     }
-    const updated: PantryItem = { id: editingItem.id, addedOn: editingItem.addedOn, name,
-      category: draft.category, quantity, unit: draft.unit.trim() || "item",
-      packageSize: draft.packageSize.trim(), location: draft.location.trim() || "Storage",
-      expiresOn: draft.expiresOn.trim(), barcode: draft.barcode.trim(),
-      notes: draft.notes.trim(), opened: draft.opened };
-    setItems((prev) => prev.map((i) => (i.id === editingItem.id ? updated : i)));
-    setEditingItem(null);
-    setHomeView(editReturnView.current);
-  }
-
-  function addItem(item: PantryItem) {
-    const incomingKey = item.name.trim().toLowerCase();
-    setItems((prev) => {
-      const existing = prev.find((i) => i.name.trim().toLowerCase() === incomingKey);
-      if (existing) {
-        return prev.map((i) =>
-          i.id === existing.id ? { ...i, quantity: i.quantity + item.quantity } : i
-        );
-      }
-      return [item, ...prev];
-    });
-  }
-
-  function useOneItem(item: PantryItem) {
-    const newQty = Math.max(0, item.quantity - 1);
     setItems((prev) =>
       prev.map((i) =>
-        i.id === item.id
-          ? { ...i, quantity: newQty, opened: newQty === 0 ? true : i.opened }
+        i.id === editingItem.id
+          ? {
+              ...i,
+              name,
+              category: draft.category,
+              quantity,
+              unit: draft.unit.trim() || "item",
+              packageSize: draft.packageSize.trim(),
+              location: draft.location.trim() || "Storage",
+              expiresOn: draft.expiresOn.trim(),
+              barcode: draft.barcode.trim(),
+              notes: draft.notes.trim(),
+              opened: draft.opened
+            }
           : i
       )
     );
-  }
-
-  function deferItem(item: PantryItem, period: SnoozePeriod) {
-    const deferredUntil =
-      period === "15d" ? addDaysToISO(15) :
-      period === "1m"  ? addMonthsToISO(1) :
-                         addMonthsToISO(2);
-    setItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, deferredUntil } : i))
-    );
-    void scheduleDeferReminder(item.id, item.name, deferredUntil);
-  }
-
-  function undeferItem(item: PantryItem) {
-    setItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, deferredUntil: undefined } : i))
-    );
-    void cancelDeferReminder(item.id);
+    setEditingItem(null);
   }
 
   function removeItem(id: string) {
     void cancelDeferReminder(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
     setEditingItem(null);
-    setHomeView(editReturnView.current);
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────
-  const screenItems = homeView === "shopping" ? activeShoppingItems : visibleItems;
+  // ── Run actions ────────────────────────────────────────────────────────
+  function startRun() {
+    if (buyList.length === 0) {
+      flashToast("Nothing to buy — your list is clear.");
+      return;
+    }
+    setRunning(true);
+    setScreen("run");
+  }
+
+  function toggleBasket(item: PantryItem) {
+    setBasket((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+  }
+
+  function finishRun() {
+    const tickedIds = runSource.filter((i) => basket[i.id]).map((i) => i.id);
+    setItems((prev) =>
+      prev.map((i) =>
+        tickedIds.includes(i.id)
+          ? {
+              ...i,
+              quantity: Math.max(1, (i.par ?? 1) - i.quantity),
+              opened: false,
+              deferredUntil: undefined,
+              ranOutOn: undefined
+            }
+          : i
+      )
+    );
+    setBasket({});
+    setRunning(false);
+    setScreen("list");
+    const n = tickedIds.length;
+    flashToast(`${n} ${n === 1 ? "item" : "items"} restocked. Shelves updated.`);
+  }
+
+  function backHomeFromEmptyRun() {
+    setBasket({});
+    setRunning(false);
+    setScreen("list");
+  }
+
+  // ── Scan actions ───────────────────────────────────────────────────────
+  function addFromScan(input: {
+    name: string;
+    category: string;
+    packageSize: string;
+    unit: string;
+    barcode: string;
+    location: string;
+    quantity: number;
+  }) {
+    const incomingKey = input.name.trim().toLowerCase();
+    setItems((prev) => {
+      const existing = prev.find((i) => i.name.trim().toLowerCase() === incomingKey);
+      if (existing) {
+        return prev.map((i) =>
+          i.id === existing.id ? { ...i, quantity: i.quantity + input.quantity } : i
+        );
+      }
+      const newItem: PantryItem = {
+        id: `${Date.now()}`,
+        addedOn: todayISO(),
+        name: input.name,
+        category: input.category || "Staples",
+        quantity: input.quantity,
+        unit: input.unit || "items",
+        packageSize: input.packageSize,
+        location: input.location,
+        expiresOn: "",
+        barcode: input.barcode,
+        notes: "",
+        opened: false,
+        par: Math.max(1, input.quantity),
+        addedBy: "You"
+      };
+      return [newItem, ...prev];
+    });
+    setScreen("shelves");
+    flashToast(`${input.name} added to ${input.location.toLowerCase()}.`);
+  }
+
+  // ── Misc ───────────────────────────────────────────────────────────────
+  function flashToast(message: string) {
+    setToast(message);
+  }
+
+  function cycleFilter() {
+    const idx = filters.findIndex((f) => f.key === filter);
+    setFilter(filters[(idx + 1) % filters.length].key);
+  }
+
+  const ready = fontsLoaded && hasLoaded && basketLoaded;
+  const showNavBar = screen !== "run" && screen !== "scan";
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={globalStyles.safeArea}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
 
-        {/* ── Screens ── */}
-        {homeView === "home" && (
-          <HomeScreen
-            shoppingItems={activeShoppingItems}
-            expiringCount={expiringCount}
-            perishablesCount={perishablesCount}
-            onGoToShopping={() => setHomeView("shopping")}
-            onGoToExpiring={() => { setFilter("expiring"); setHomeView("find"); }}
-          />
-        )}
-
-        {(homeView === "find" || homeView === "shopping") && (
-          <PantryListScreen
-            filter={filter}
-            items={screenItems}
-            deferredItems={homeView === "shopping" ? deferredShoppingItems : undefined}
-            query={query}
-            view={homeView}
-            onChangeFilter={setFilter}
-            onChangeQuery={setQuery}
-            onEditItem={openEditItem}
-            onUseOneItem={useOneItem}
-            onDeferItem={deferItem}
-            onUndeferItem={undeferItem}
-            onGoHome={() => setHomeView("home")}
-          />
-        )}
-
-        {homeView === "add" && (
-          <AddChoiceScreen
-            onGoBack={() => setHomeView("home")}
-            onGoToPerishable={() => setHomeView("add-perishable")}
-            onGoToScanLookup={() => {
-              setDraft(makeEmptyDraft());
-              setHomeView("add-item");
-            }}
-          />
-        )}
-
-        {homeView === "add-perishable" && (
-          <AddPerishableScreen
-            onGoBack={() => setHomeView("add")}
-            onSave={(item) => { addItem(item); setHomeView("home"); }}
-          />
-        )}
-
-        {homeView === "add-item" && (
+        {!ready ? null : editingItem ? (
           <ItemEditorScreen
             draft={draft}
-            insideApp
-            isEditing={false}
-            onCancel={() => setHomeView("add")}
-            onChangeDraft={setDraft}
-            onSave={saveNewItem}
-          />
-        )}
-
-        {homeView === "edit-item" && (
-          <ItemEditorScreen
-            draft={draft}
-            insideApp
             isEditing
-            onCancel={() => { setEditingItem(null); setHomeView(editReturnView.current); }}
+            onCancel={() => setEditingItem(null)}
             onChangeDraft={setDraft}
-            onRemove={editingItem ? () => removeItem(editingItem.id) : undefined}
+            onRemove={() => removeItem(editingItem.id)}
             onSave={saveEditedItem}
           />
+        ) : (
+          <>
+            {screen === "list" && (
+              <ListScreen
+                buyList={buyList}
+                snoozedItems={snoozedItems}
+                expiringCount={expiringItems.length}
+                totalCount={items.length}
+                shelvesCount={shelvesCount}
+                onStartRun={startRun}
+                onOpenHousehold={() => setHouseholdOpen(true)}
+                onOpenSettings={() => flashToast("Settings isn't built yet.")}
+                onOpenItem={(item) => setSheetId(item.id)}
+                onGoExpiring={() => setScreen("expiring")}
+                onGoShelves={() => setScreen("shelves")}
+              />
+            )}
+
+            {screen === "shelves" && (
+              <ShelvesScreen
+                allItems={items}
+                filteredItems={shelvesFiltered}
+                filter={filter}
+                onCycleFilter={cycleFilter}
+                onGoSearch={() => setScreen("search")}
+                onOpenItem={(item) => setSheetId(item.id)}
+              />
+            )}
+
+            {screen === "run" && (
+              <RunScreen
+                runItems={runSource}
+                basket={basket}
+                onToggleBasket={toggleBasket}
+                onPause={() => setScreen("list")}
+                onFinish={finishRun}
+                onNothingTicked={() => flashToast("Tick something into the basket first.")}
+                onBackHome={backHomeFromEmptyRun}
+                onScan={() => setScreen("scan")}
+              />
+            )}
+
+            {screen === "expiring" && (
+              <ExpiringScreen
+                items={expiringItems}
+                onOpenItem={(item) => setSheetId(item.id)}
+                onUseOne={(item) => {
+                  stepItem(item, -1);
+                  flashToast(`Used one ${item.name.toLowerCase()}.`);
+                }}
+              />
+            )}
+
+            {screen === "search" && (
+              <SearchScreen
+                items={items}
+                query={query}
+                onChangeQuery={setQuery}
+                onOpenItem={(item) => setSheetId(item.id)}
+              />
+            )}
+
+            {screen === "scan" && (
+              <ScanScreen
+                onClose={() => setScreen(running ? "run" : "list")}
+                onAddToShelf={addFromScan}
+              />
+            )}
+
+            {showNavBar && <BottomNavBar screen={screen} onSelectScreen={setScreen} />}
+
+            <ItemSheet
+              item={sheetItem}
+              onClose={() => setSheetId(null)}
+              onStep={stepItem}
+              onToggleOpened={toggleOpened}
+              onSnooze={snoozeItem}
+              onUnsnooze={unsnoozeItem}
+              onEditDetails={editDetails}
+            />
+
+            <HouseholdSheet
+              visible={householdOpen}
+              onClose={() => setHouseholdOpen(false)}
+              onInvite={() => {
+                setHouseholdOpen(false);
+                flashToast("Invites aren't set up yet.");
+              }}
+            />
+          </>
         )}
 
-        {/* ── Bottom nav — always visible ── */}
-        <BottomNavBar view={homeView} onSelectView={setHomeView} />
-
+        {ready ? <Toast message={toast} onDismiss={() => setToast("")} /> : null}
       </SafeAreaView>
     </SafeAreaProvider>
   );

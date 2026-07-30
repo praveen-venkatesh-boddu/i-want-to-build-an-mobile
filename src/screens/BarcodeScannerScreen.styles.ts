@@ -1,11 +1,11 @@
 import { StyleSheet } from "react-native";
 
-import { md3, radii, spacing } from "../styles/globalStyles";
+import { colors, radii, space } from "../styles/globalStyles";
 
 export const barcodeScannerStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: md3.background
+    backgroundColor: colors.bg
   },
 
   // ── Permission screen ─────────────────────────────────────────────────
@@ -13,50 +13,47 @@ export const barcodeScannerStyles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
-    padding: spacing.xl
+    padding: space.xl
   },
   title: {
-    // M3 Headline Small
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 24,
     fontWeight: "400",
     textAlign: "center"
   },
   bodyText: {
-    // M3 Body Large
-    color: md3.onSurfaceVariant,
+    color: colors.neutral400,
     fontSize: 16,
     fontWeight: "400",
     letterSpacing: 0.5,
     lineHeight: 24,
-    marginTop: spacing.sm,
+    marginTop: space.sm,
     textAlign: "center"
   },
 
-  // M3 Filled Button
   primaryButton: {
-    backgroundColor: md3.primary,
-    borderRadius: radii.round,
-    marginTop: spacing.xl,
-    paddingHorizontal: spacing.xl,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    marginTop: space.xl,
+    paddingHorizontal: space.xl,
     paddingVertical: 12
   },
   primaryButtonText: {
-    color: md3.onPrimary,
+    color: colors.accent,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
-  // M3 Text Button
   secondaryButton: {
-    marginTop: spacing.md,
-    padding: spacing.sm
+    marginTop: space.md,
+    padding: space.sm
   },
   secondaryButtonText: {
-    color: md3.onSurfaceVariant,
+    color: colors.neutral400,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
@@ -74,10 +71,9 @@ export const barcodeScannerStyles = StyleSheet.create({
   },
   header: {
     alignItems: "flex-end",
-    paddingHorizontal: spacing.xl
+    paddingHorizontal: space.xl
   },
 
-  // Icon-only close button (40dp touch target)
   closeButton: {
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.55)",
@@ -91,33 +87,30 @@ export const barcodeScannerStyles = StyleSheet.create({
     justifyContent: "center"
   },
   scanFrameInner: {
-    borderColor: md3.primaryContainer,
+    borderColor: colors.accent,
     borderRadius: radii.lg,
     borderWidth: 3,
     height: 170,
     width: "78%"
   },
 
-  // M3 Surface (scrim-backed footer)
   footer: {
     backgroundColor: "rgba(0, 0, 0, 0.65)",
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl
+    paddingHorizontal: space.xl,
+    paddingVertical: space.xl
   },
   footerTitle: {
-    // M3 Title Large
-    color: md3.surfaceContainerLowest,
+    color: colors.text,
     fontSize: 20,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium", fontWeight: "500",
     textAlign: "center"
   },
   footerText: {
-    // M3 Body Medium
-    color: md3.outlineVariant,
+    color: colors.neutral300,
     fontSize: 14,
     fontWeight: "400",
     letterSpacing: 0.25,
-    marginTop: spacing.xs,
+    marginTop: space.xs,
     textAlign: "center"
   }
 });

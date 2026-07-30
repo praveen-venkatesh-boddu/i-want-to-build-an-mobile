@@ -1,117 +1,102 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import {
+  Barcode,
+  ClockCountdown,
+  ListDashes,
+  MagnifyingGlass,
+  Stack
+} from "phosphor-react-native";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { md3, radii, spacing } from "../styles/globalStyles";
-import type { HomeView } from "../types/pantry";
+import { accentGlow, colors } from "../styles/globalStyles";
+import type { Screen } from "../types/pantry";
 
 type BottomNavBarProps = {
-  view: HomeView;
-  onSelectView: (view: HomeView) => void;
+  screen: Screen;
+  onSelectScreen: (screen: Screen) => void;
 };
 
-const isAddView = (v: HomeView) => v === "add" || v === "add-perishable" || v === "add-item";
+const TAB_HEIGHT = 66;
+const SCAN_CIRCLE = 46;
 
-export function BottomNavBar({ view, onSelectView }: BottomNavBarProps) {
+export function BottomNavBar({ screen, onSelectScreen }: BottomNavBarProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 0), height: TAB_HEIGHT + Math.max(insets.bottom, 0) }]}>
+      <NavItem icon={ListDashes} active={screen === "list"} onPress={() => onSelectScreen("list")} label="List" />
+      <NavItem icon={Stack} active={screen === "shelves"} onPress={() => onSelectScreen("shelves")} label="Shelves" />
 
-      <NavItem
-        icon="home"
-        label="Home"
-        active={view === "home"}
-        onPress={() => onSelectView("home")}
-      />
+      <Pressable
+        style={styles.scanSlot}
+        onPress={() => onSelectScreen("scan")}
+        accessibilityLabel="Scan"
+      >
+        <View style={[styles.scanCircle, accentGlow]}>
+          <Barcode size={21} color={colors.accent} weight="regular" />
+        </View>
+      </Pressable>
 
-      <NavItem
-        icon="search"
-        label="Find"
-        active={view === "find"}
-        onPress={() => onSelectView("find")}
-      />
-
-      <NavItem
-        icon="add"
-        label="Add"
-        active={isAddView(view)}
-        onPress={() => onSelectView("add")}
-      />
-
-      <NavItem
-        icon="shopping-cart"
-        label="Shopping"
-        active={view === "shopping"}
-        onPress={() => onSelectView("shopping")}
-      />
-
+      <NavItem icon={ClockCountdown} active={screen === "expiring"} onPress={() => onSelectScreen("expiring")} label="Expiring" />
+      <NavItem icon={MagnifyingGlass} active={screen === "search"} onPress={() => onSelectScreen("search")} label="Search" />
     </View>
   );
 }
 
-// ── Shared nav item ─────────────────────────────────────────────────────
 function NavItem({
-  icon,
-  label,
+  icon: Icon,
   active,
-  onPress
+  onPress,
+  label
 }: {
-  icon: keyof typeof MaterialIcons.glyphMap;
-  label: string;
+  icon: React.ComponentType<{ size: number; color: string; weight?: "regular" }>;
   active: boolean;
   onPress: () => void;
+  label: string;
 }) {
   return (
-    <Pressable style={styles.item} onPress={onPress} accessibilityLabel={label}>
-      <View style={[styles.indicator, active && styles.indicatorActive]}>
-        <MaterialIcons
-          name={icon}
-          size={24}
-          color={active ? md3.onSecondaryContainer : md3.onSurfaceVariant}
-        />
-      </View>
-      <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+    <Pressable
+      style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
+      onPress={onPress}
+      accessibilityLabel={label}
+    >
+      <Icon size={22} color={active ? colors.accent : colors.neutral600} weight="regular" />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
-    alignItems: "center",
-    backgroundColor: md3.surfaceContainer,
-    borderTopColor: md3.outlineVariant,
-    borderTopWidth: 1,
     flexDirection: "row",
-    height: 80,
-    paddingHorizontal: spacing.sm
-  },
-
-  item: {
     alignItems: "center",
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral900,
+    paddingTop: 0
+  },
+  item: {
     flex: 1,
-    gap: 4,
+    height: TAB_HEIGHT,
+    alignItems: "center",
     justifyContent: "center"
   },
-
-  // M3 active-state indicator pill
-  indicator: {
+  itemPressed: {
+    backgroundColor: colors.accentTint14
+  },
+  scanSlot: {
+    flex: 1,
+    height: TAB_HEIGHT,
     alignItems: "center",
-    borderRadius: radii.round,
-    height: 32,
-    justifyContent: "center",
-    width: 64
+    justifyContent: "center"
   },
-  indicatorActive: {
-    backgroundColor: md3.secondaryContainer
-  },
-
-  label: {
-    color: md3.onSurfaceVariant,
-    fontSize: 12,
-    fontWeight: "500",
-    letterSpacing: 0.5
-  },
-  labelActive: {
-    color: md3.onSecondaryContainer,
-    fontWeight: "600"
+  scanCircle: {
+    width: SCAN_CIRCLE,
+    height: SCAN_CIRCLE,
+    borderRadius: SCAN_CIRCLE / 2,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    alignItems: "center",
+    justifyContent: "center"
   }
 });
