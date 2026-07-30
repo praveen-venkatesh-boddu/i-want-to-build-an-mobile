@@ -48,6 +48,34 @@ export const filters: Array<{ key: FilterKey; label: string }> = [
   { key: "opened", label: "Opened" }
 ];
 
+/** Fixed Shelves group order — groups with no matching rows are skipped, never rendered empty. */
+export const PLACE_GROUPS = [
+  "Pantry shelf",
+  "Fridge",
+  "Freezer drawer",
+  "Under the sink",
+  "Utility",
+  "Bathroom"
+] as const;
+
+/** The three places offered as quick chips when a scanned item is added. */
+export const SCAN_PLACE_CHIPS = ["Pantry shelf", "Fridge", "Freezer drawer"] as const;
+
+/**
+ * Maps a free-text `location` (the field predates the redesign's fixed six
+ * place groups) to the closest canonical group, so every item still lands in
+ * a Shelves section. Unrecognised locations fall back to "Utility".
+ */
+export function groupForLocation(location: string): (typeof PLACE_GROUPS)[number] {
+  const normalized = location.toLowerCase();
+  if (normalized.includes("fridge") || normalized.includes("refrigerat")) return "Fridge";
+  if (normalized.includes("freezer")) return "Freezer drawer";
+  if (normalized.includes("pantry")) return "Pantry shelf";
+  if (normalized.includes("sink")) return "Under the sink";
+  if (normalized.includes("bath")) return "Bathroom";
+  return "Utility";
+}
+
 export const starterItems: PantryItem[] = [
   {
     id: "starter-rice",
@@ -61,7 +89,9 @@ export const starterItems: PantryItem[] = [
     expiresOn: "2026-10-01",
     barcode: "",
     notes: "One open, one sealed",
-    opened: true
+    opened: true,
+    par: 2,
+    addedBy: "You"
   },
   {
     id: "starter-tomatoes",
@@ -71,11 +101,13 @@ export const starterItems: PantryItem[] = [
     quantity: 4,
     unit: "cans",
     packageSize: "9 fl oz",
-    location: "Lower cabinet",
+    location: "Utility",
     expiresOn: "2026-05-30",
     barcode: "",
     notes: "Good for pasta night",
-    opened: false
+    opened: false,
+    par: 4,
+    addedBy: "You"
   },
   {
     id: "starter-spinach",
@@ -89,7 +121,9 @@ export const starterItems: PantryItem[] = [
     expiresOn: "2026-05-24",
     barcode: "",
     notes: "",
-    opened: false
+    opened: false,
+    par: 2,
+    addedBy: "You"
   }
 ];
 

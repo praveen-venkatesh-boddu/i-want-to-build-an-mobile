@@ -1,15 +1,15 @@
-import { MaterialIcons } from "@expo/vector-icons";
 import {
   BarcodeScanningResult,
   BarcodeType,
   CameraView,
   useCameraPermissions
 } from "expo-camera";
+import { X } from "phosphor-react-native";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { md3, spacing } from "../styles/globalStyles";
+import { colors, space } from "../styles/globalStyles";
 import { barcodeScannerStyles as styles } from "./BarcodeScannerScreen.styles";
 
 type BarcodeScannerScreenProps = {
@@ -80,9 +80,9 @@ export function BarcodeScannerScreen({ onCancel, onScanned }: BarcodeScannerScre
         style={styles.camera}
       />
       <View style={styles.overlay}>
-        <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
           <Pressable onPress={onCancel} style={styles.closeButton} accessibilityLabel="Close scanner">
-            <MaterialIcons name="close" size={22} color={md3.surfaceContainerLowest} />
+            <X size={20} color={colors.text} weight="regular" />
           </Pressable>
         </View>
         <View style={styles.scanFrame}>

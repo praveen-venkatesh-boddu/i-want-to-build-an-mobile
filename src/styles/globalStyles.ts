@@ -1,136 +1,119 @@
 import { StyleSheet } from "react-native";
 
-// Material Design 3 color tokens (green seed color)
-export const md3 = {
-  primary: "#006B54",
-  onPrimary: "#FFFFFF",
-  primaryContainer: "#85F8D2",
-  onPrimaryContainer: "#002117",
-
-  secondary: "#4C6358",
-  onSecondary: "#FFFFFF",
-  secondaryContainer: "#CEE9DC",
-  onSecondaryContainer: "#092019",
-
-  tertiary: "#3D6374",
-  onTertiary: "#FFFFFF",
-  tertiaryContainer: "#C1E8FC",
-  onTertiaryContainer: "#001F2B",
-
-  error: "#BA1A1A",
-  onError: "#FFFFFF",
-  errorContainer: "#FFDAD6",
-  onErrorContainer: "#410002",
-
-  background: "#F5FBF7",
-  onBackground: "#171D1A",
-
-  surface: "#F5FBF7",
-  onSurface: "#171D1A",
-  surfaceVariant: "#DBE5DE",
-  onSurfaceVariant: "#3F4943",
-
-  surfaceContainerLowest: "#FFFFFF",
-  surfaceContainerLow: "#EFF5F0",
-  surfaceContainer: "#E9EFE9",
-  surfaceContainerHigh: "#E3E9E4",
-  surfaceContainerHighest: "#DDE4DE",
-
-  outline: "#6F7973",
-  outlineVariant: "#BFC9C2",
-
-  inverseSurface: "#2B322E",
-  inverseOnSurface: "#ECF2ED",
-  inversePrimary: "#68DBB6",
-
-  // Non-standard: amber warning for expiry
-  warningContainer: "#FFECD9",
-  onWarningContainer: "#4D2600",
-  warningContainerBorder: "#FFCC94",
-
-  scrim: "rgba(0, 0, 0, 0.32)"
-};
-
-// Backward-compatible `colors` export mapped to M3 tokens
+// "Ledger" design tokens — dark-theme-only. See design_handoff_ledger_redesign/README.md.
 export const colors = {
-  background: md3.background,
-  border: md3.outlineVariant,
-  borderSoft: md3.outlineVariant,
-  card: md3.surfaceContainerLowest,
-  danger: md3.error,
-  dangerBackground: md3.errorContainer,
-  dangerBorder: "#FFBAB1",
-  muted: md3.onSurfaceVariant,
-  mutedDark: md3.onSurface,
-  primary: md3.primary,
-  primarySoft: md3.primaryContainer,
-  primaryText: md3.onPrimaryContainer,
-  surface: md3.surfaceContainerLow,
-  text: md3.onSurface,
-  warning: md3.onWarningContainer,
-  warningBackground: md3.warningContainer,
-  warningCard: md3.warningContainer,
-  warningBorder: md3.warningContainerBorder,
-  white: md3.surfaceContainerLowest
+  bg: "#161826",
+  surface: "#232532",
+  text: "#e9e9ed",
+  accent: "#9184d9",
+
+  neutral100: "#f3f5fe",
+  neutral200: "#e4e7f5",
+  neutral300: "#cfd3e5",
+  neutral400: "#b2b6ca",
+  neutral500: "#9397ab",
+  neutral600: "#75798c",
+  neutral700: "#595d6c",
+  neutral800: "#3f424d",
+  neutral900: "#292b31",
+
+  accent100: "#f5f4ff",
+  accent200: "#e7e5fe",
+  accent300: "#d2cefd",
+  accent400: "#b5abfc",
+  accent500: "#968ae0",
+  accent600: "#796cbf",
+  accent700: "#5d5294",
+  accent800: "#423a6a",
+  accent900: "#2b2741",
+
+  accentTint14: "rgba(145,132,217,0.14)",
+  accentGlowShadow: "#9184d9",
+  scrim: "rgba(11,12,20,0.66)",
+
+  // Not part of the Ledger spec (no destructive-action guidance given) — a
+  // muted red kept for the item editor's delete action only.
+  danger: "#e5484d"
 };
 
-// M3 shape scale
 export const radii = {
-  extraSmall: 4,
-  sm: 8,
-  md: 12,   // M3 Medium shape
-  lg: 16,   // M3 Large shape
-  xl: 28,   // M3 Extra-Large shape
+  sm: 4,
+  md: 8,
+  lg: 14,
+  sheet: 16,
   round: 9999
 };
 
 export const spacing = {
+  screenH: 22,
+  sectionGapMin: 20,
+  sectionGapMax: 26,
+  rowVMin: 12,
+  rowVMax: 18
+};
+
+// Generic scale for dense form layouts (the item editor) that the Ledger spec
+// doesn't define pixel-for-pixel — kept separate from `spacing` above.
+export const space = {
   xs: 4,
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 20,
+  xl: 22,
   xxl: 32
 };
 
-// M3 elevation shadows (Android-style)
-export const elevation = {
-  level0: {},
-  level1: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 2,
-    elevation: 1
-  },
-  level2: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.14,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  level3: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
-    elevation: 4
-  }
+export const type = {
+  heroNumeral: { fontSize: 76, lineHeight: 65, fontFamily: "Inter_300Light", fontWeight: "300" as const, letterSpacing: -4 },
+  screenTitle2Line: { fontSize: 34, lineHeight: 36, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: -1 },
+  screenTitle1Line: { fontSize: 27, lineHeight: 31, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: -0.3 },
+  sheetTitle: { fontSize: 24, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: -0.4 },
+  bigNumeralRun: { fontSize: 52, lineHeight: 52, fontFamily: "Inter_300Light", fontWeight: "300" as const, letterSpacing: -2 },
+  bigNumeralStat: { fontSize: 40, lineHeight: 40, fontFamily: "Inter_300Light", fontWeight: "300" as const, letterSpacing: -1.5 },
+  rowNameBuy: { fontSize: 19, fontWeight: "400" as const, letterSpacing: -0.2 },
+  rowNameList: { fontSize: 16, fontWeight: "400" as const, letterSpacing: 0 },
+  rowNameShelves: { fontSize: 15, fontWeight: "400" as const, letterSpacing: 0 },
+  body: { fontSize: 14, fontWeight: "400" as const, letterSpacing: 0 },
+  sectionLabel: { fontSize: 11, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: 0.18, textTransform: "uppercase" as const },
+  meta: { fontSize: 12, fontWeight: "400" as const, letterSpacing: 0.02 },
+  numericMeta: { fontSize: 10, fontWeight: "400" as const, letterSpacing: 0.08, textTransform: "uppercase" as const }
+};
+
+// Elevation on a dark ground: an edge plus ambient darkness, not a drop shadow.
+export const shadowSm = {
+  borderWidth: 1,
+  borderColor: colors.neutral800
+};
+
+export const shadowMd = {
+  borderWidth: 1,
+  borderColor: colors.neutral700,
+  shadowColor: "#000",
+  shadowOpacity: 0.55,
+  shadowRadius: 18,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 6
+};
+
+export const accentGlow = {
+  shadowColor: colors.accentGlowShadow,
+  shadowOpacity: 0.28,
+  shadowRadius: 20,
+  shadowOffset: { width: 0, height: 0 },
+  elevation: 4
 };
 
 export const globalStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: md3.background
+    backgroundColor: colors.bg
   },
-  // M3 Outlined TextField style
   textInput: {
-    backgroundColor: md3.surfaceContainerLowest,
-    borderColor: md3.outline,
+    backgroundColor: colors.surface,
+    borderColor: colors.neutral800,
     borderRadius: radii.md,
     borderWidth: 1,
-    color: md3.onSurface,
+    color: colors.text,
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 12

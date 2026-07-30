@@ -1,4 +1,4 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { Barcode, CaretDown, CaretUp, Check, HourglassMedium, MagnifyingGlass } from "phosphor-react-native";
 import React, { useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -10,12 +10,11 @@ import {
   TextInput,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Field } from "../components/Field";
 import { categories, getDefaultPackageSize, packageTypes } from "../constants/pantry";
 import { applyLookupResultToDraft, lookupProductByBarcode } from "../services/productLookup";
-import { globalStyles, md3 } from "../styles/globalStyles";
+import { colors, globalStyles } from "../styles/globalStyles";
 import type { ItemDraft } from "../types/pantry";
 import { PKG_UNIT_OPTIONS, parsePkgSize } from "../utils/packageSize";
 import { BarcodeScannerScreen } from "./BarcodeScannerScreen";
@@ -25,7 +24,6 @@ type OpenDropdown = "category" | "packageType" | "pkgUnit" | null;
 
 type ItemEditorScreenProps = {
   draft: ItemDraft;
-  insideApp?: boolean;
   isEditing: boolean;
   onCancel: () => void;
   onChangeDraft: React.Dispatch<React.SetStateAction<ItemDraft>>;
@@ -35,7 +33,6 @@ type ItemEditorScreenProps = {
 
 export function ItemEditorScreen({
   draft,
-  insideApp = false,
   isEditing,
   onCancel,
   onChangeDraft,
@@ -99,10 +96,9 @@ export function ItemEditorScreen({
   }
 
   const selectedPackageType = packageTypes.find((pt) => pt.value === draft.unit);
-  const Root = insideApp ? View : SafeAreaView;
 
   return (
-    <Root style={insideApp ? { flex: 1, backgroundColor: "transparent" } : styles.modalSafeArea}>
+    <View style={{ flex: 1, backgroundColor: "transparent" }}>
       <Pressable style={styles.modalShell} onPress={() => setOpenDropdown(null)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -124,7 +120,7 @@ export function ItemEditorScreen({
                 value={draft.name}
                 onChangeText={(name) => onChangeDraft((current) => ({ ...current, name }))}
                 placeholder="Rolled oats"
-                placeholderTextColor={md3.onSurfaceVariant}
+                placeholderTextColor={colors.neutral500}
                 style={globalStyles.textInput}
               />
             </Field>
@@ -138,7 +134,7 @@ export function ItemEditorScreen({
                     setScanMessage("");
                   }}
                   placeholder="Scan or enter UPC"
-                  placeholderTextColor={md3.onSurfaceVariant}
+                  placeholderTextColor={colors.neutral500}
                   style={[globalStyles.textInput, styles.barcodeInput]}
                 />
                 <Pressable
@@ -149,7 +145,7 @@ export function ItemEditorScreen({
                   }}
                   style={styles.scanButton}
                 >
-                  <MaterialIcons name="qr-code-scanner" size={18} color={md3.onPrimary} />
+                  <Barcode size={18} color={colors.neutral300} weight="regular" />
                   <Text style={styles.scanButtonText}>Scan</Text>
                 </Pressable>
                 <Pressable
@@ -160,11 +156,11 @@ export function ItemEditorScreen({
                     (!draft.barcode || isLookingUpBarcode) && styles.lookupButtonDisabled
                   ]}
                 >
-                  <MaterialIcons
-                    name={isLookingUpBarcode ? "hourglass-empty" : "manage-search"}
-                    size={18}
-                    color={md3.onSecondaryContainer}
-                  />
+                  {isLookingUpBarcode ? (
+                    <HourglassMedium size={18} color={colors.neutral300} weight="regular" />
+                  ) : (
+                    <MagnifyingGlass size={18} color={colors.neutral300} weight="regular" />
+                  )}
                   <Text style={styles.lookupButtonText}>
                     {isLookingUpBarcode ? "Looking up…" : "Lookup"}
                   </Text>
@@ -179,11 +175,11 @@ export function ItemEditorScreen({
                 style={styles.dropdownButton}
               >
                 <Text style={styles.dropdownText}>{draft.category}</Text>
-                <MaterialIcons
-                  name={openDropdown === "category" ? "keyboard-arrow-up" : "keyboard-arrow-down"}
-                  size={22}
-                  color={md3.onSurfaceVariant}
-                />
+                {openDropdown === "category" ? (
+                  <CaretUp size={18} color={colors.neutral500} weight="regular" />
+                ) : (
+                  <CaretDown size={18} color={colors.neutral500} weight="regular" />
+                )}
               </Pressable>
             </Field>
 
@@ -193,7 +189,7 @@ export function ItemEditorScreen({
                   value={categoryQuery}
                   onChangeText={setCategoryQuery}
                   placeholder="Search categories"
-                  placeholderTextColor={md3.onSurfaceVariant}
+                  placeholderTextColor={colors.neutral500}
                   style={styles.dropdownSearchInput}
                 />
                 {visibleCategories.length === 0 ? (
@@ -254,11 +250,11 @@ export function ItemEditorScreen({
                   style={styles.dropdownButton}
                 >
                   <Text style={styles.dropdownText}>{selectedPackageType?.label ?? draft.unit}</Text>
-                  <MaterialIcons
-                    name={openDropdown === "packageType" ? "keyboard-arrow-up" : "keyboard-arrow-down"}
-                    size={22}
-                    color={md3.onSurfaceVariant}
-                  />
+                  {openDropdown === "packageType" ? (
+                    <CaretUp size={18} color={colors.neutral500} weight="regular" />
+                  ) : (
+                    <CaretDown size={18} color={colors.neutral500} weight="regular" />
+                  )}
                 </Pressable>
               </Field>
               <Field label="Package size" style={styles.packageSizeField}>
@@ -280,11 +276,11 @@ export function ItemEditorScreen({
                     style={styles.pkgUnitTrigger}
                   >
                     <Text style={styles.pkgUnitText}>{pkgUnit}</Text>
-                    <MaterialIcons
-                      name={openDropdown === "pkgUnit" ? "keyboard-arrow-up" : "keyboard-arrow-down"}
-                      size={18}
-                      color={md3.onSurfaceVariant}
-                    />
+                    {openDropdown === "pkgUnit" ? (
+                      <CaretUp size={16} color={colors.neutral500} weight="regular" />
+                    ) : (
+                      <CaretDown size={16} color={colors.neutral500} weight="regular" />
+                    )}
                   </Pressable>
                 </View>
               </Field>
@@ -350,7 +346,7 @@ export function ItemEditorScreen({
                 value={draft.location}
                 onChangeText={(location) => onChangeDraft((current) => ({ ...current, location }))}
                 placeholder="Upper shelf"
-                placeholderTextColor={md3.onSurfaceVariant}
+                placeholderTextColor={colors.neutral500}
                 style={globalStyles.textInput}
               />
             </Field>
@@ -362,7 +358,7 @@ export function ItemEditorScreen({
                   onChangeDraft((current) => ({ ...current, expiresOn }))
                 }
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor={md3.onSurfaceVariant}
+                placeholderTextColor={colors.neutral500}
                 style={globalStyles.textInput}
               />
             </Field>
@@ -372,7 +368,7 @@ export function ItemEditorScreen({
                 value={draft.notes}
                 onChangeText={(notes) => onChangeDraft((current) => ({ ...current, notes }))}
                 placeholder="Recipe ideas, brand, opened date"
-                placeholderTextColor={md3.onSurfaceVariant}
+                placeholderTextColor={colors.neutral500}
                 style={[globalStyles.textInput, styles.notesInput]}
                 multiline
               />
@@ -384,7 +380,7 @@ export function ItemEditorScreen({
             >
               <View style={[styles.checkbox, draft.opened && styles.checkboxActive]}>
                 {draft.opened ? (
-                  <MaterialIcons name="check" size={16} color={md3.onPrimary} />
+                  <Check size={16} color={colors.accent100} weight="bold" />
                 ) : null}
               </View>
               <Text style={styles.openedToggleText}>This item is already opened</Text>
@@ -405,6 +401,6 @@ export function ItemEditorScreen({
           onScanned={handleBarcodeScanned}
         />
       </Modal>
-    </Root>
+    </View>
   );
 }

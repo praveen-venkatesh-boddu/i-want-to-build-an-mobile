@@ -4,9 +4,9 @@
     "slug": "pantry-pocket",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
-      "backgroundColor": "#F6F2EA"
+      "backgroundColor": "#161826"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -25,7 +25,7 @@
         "android.permission.USE_EXACT_ALARM"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#F6F2EA"
+        "backgroundColor": "#161826"
       }
     },
     "plugins": [
@@ -33,10 +33,11 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#F6F2EA",
+          "color": "#232532",
           "sounds": []
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
