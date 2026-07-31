@@ -42,7 +42,8 @@ export const runStyles = StyleSheet.create({
   countNumber: {
     color: colors.text,
     fontSize: 52,
-    lineHeight: 52,
+    // No explicit lineHeight — RN clips glyphs when it's <= fontSize for
+    // this weight (see ListScreen.styles.ts heroCount for the same issue).
     fontFamily: "Inter_300Light", fontWeight: "300",
     letterSpacing: -2
   },

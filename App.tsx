@@ -340,6 +340,10 @@ export default function App() {
                 onOpenItem={(item) => setSheetId(item.id)}
                 onGoExpiring={() => setScreen("expiring")}
                 onGoShelves={() => setScreen("shelves")}
+                onSeeMoreOutOfStock={() => {
+                  setFilter("low");
+                  setScreen("shelves");
+                }}
               />
             )}
 

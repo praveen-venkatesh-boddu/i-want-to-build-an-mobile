@@ -9,6 +9,8 @@ import type { PantryItem } from "../types/pantry";
 import { daysSince, formatShortDate } from "../utils/date";
 import { listStyles as s } from "./ListScreen.styles";
 
+const OUT_OF_STOCK_LIMIT = 5;
+
 type ListScreenProps = {
   buyList: PantryItem[];
   snoozedItems: PantryItem[];
@@ -21,6 +23,7 @@ type ListScreenProps = {
   onOpenItem: (item: PantryItem) => void;
   onGoExpiring: () => void;
   onGoShelves: () => void;
+  onSeeMoreOutOfStock: () => void;
 };
 
 export function ListScreen({
@@ -34,10 +37,13 @@ export function ListScreen({
   onOpenSettings,
   onOpenItem,
   onGoExpiring,
-  onGoShelves
+  onGoShelves,
+  onSeeMoreOutOfStock
 }: ListScreenProps) {
   const buyCount = buyList.length;
   const isClear = buyCount === 0;
+  const visibleBuyList = buyList.slice(0, OUT_OF_STOCK_LIMIT);
+  const overflowCount = buyCount - visibleBuyList.length;
 
   return (
     <View style={s.shell}>
@@ -97,7 +103,7 @@ export function ListScreen({
               </View>
               <FadeRule color={colors.neutral800} />
 
-              {buyList.map((item) => (
+              {visibleBuyList.map((item) => (
                 <Pressable
                   key={item.id}
                   style={({ pressed }) => [s.row, pressed && s.rowPressed]}
@@ -109,6 +115,15 @@ export function ListScreen({
                   <Text style={s.rowDays}>{daysSince(item.ranOutOn ?? "")}d</Text>
                 </Pressable>
               ))}
+
+              {overflowCount > 0 ? (
+                <Pressable
+                  style={({ pressed }) => [s.moreRow, pressed && s.rowPressed]}
+                  onPress={onSeeMoreOutOfStock}
+                >
+                  <Text style={s.moreRowText}>+{overflowCount} more</Text>
+                </Pressable>
+              ) : null}
             </>
           )}
 
