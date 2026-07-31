@@ -143,6 +143,17 @@ export const listStyles = StyleSheet.create({
     fontSize: 12
   },
 
+  moreRow: {
+    paddingHorizontal: spacing.screenH,
+    paddingVertical: 15
+  },
+  moreRowText: {
+    color: colors.accent300,
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    fontWeight: "500"
+  },
+
   emptyState: {
     paddingHorizontal: spacing.screenH,
     paddingTop: 26
