@@ -150,7 +150,7 @@ export const listStyles = StyleSheet.create({
   moreRowText: {
     color: colors.accent300,
     fontSize: 13,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSans_500Medium",
     fontWeight: "500"
   },
 
