@@ -50,7 +50,9 @@ export const listStyles = StyleSheet.create({
   heroCount: {
     color: colors.text,
     fontSize: 76,
-    lineHeight: 65,
+    // No explicit lineHeight: the design's 65 (CSS-derived) is shorter than
+    // the glyph itself needs and clips digits top/bottom in RN's native text
+    // layout (unlike a browser). Let RN size the line box from font metrics.
     fontFamily: "Inter_300Light", fontWeight: "300",
     letterSpacing: -4
   },
@@ -141,6 +143,17 @@ export const listStyles = StyleSheet.create({
     fontSize: 12
   },
 
+  moreRow: {
+    paddingHorizontal: spacing.screenH,
+    paddingVertical: 15
+  },
+  moreRowText: {
+    color: colors.accent300,
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    fontWeight: "500"
+  },
+
   emptyState: {
     paddingHorizontal: spacing.screenH,
     paddingTop: 26
@@ -184,7 +197,7 @@ export const listStyles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 40,
-    lineHeight: 40,
+    // Same clipping risk as heroCount above — omit lineHeight.
     fontFamily: "Inter_300Light", fontWeight: "300",
     letterSpacing: -1.5
   },
