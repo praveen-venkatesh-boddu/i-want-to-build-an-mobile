@@ -42,7 +42,7 @@ export const barcodeScannerStyles = StyleSheet.create({
   primaryButtonText: {
     color: colors.accent,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
@@ -53,7 +53,7 @@ export const barcodeScannerStyles = StyleSheet.create({
   secondaryButtonText: {
     color: colors.neutral400,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
@@ -102,7 +102,7 @@ export const barcodeScannerStyles = StyleSheet.create({
   footerTitle: {
     color: colors.text,
     fontSize: 20,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     textAlign: "center"
   },
   footerText: {

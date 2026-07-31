@@ -19,7 +19,7 @@ export const searchStyles = StyleSheet.create({
     flex: 1,
     color: colors.text,
     fontSize: 21,
-    fontWeight: "400",
+    fontFamily: "SpaceGrotesk_400Regular", fontWeight: "400",
     letterSpacing: -0.3,
     padding: 0
   },
@@ -52,7 +52,8 @@ export const searchStyles = StyleSheet.create({
   },
   rowName: {
     color: colors.text,
-    fontSize: 17
+    fontSize: 17,
+    fontFamily: "SpaceGrotesk_400Regular", fontWeight: "400"
   },
   rowMeta: {
     color: colors.neutral500,
@@ -61,6 +62,7 @@ export const searchStyles = StyleSheet.create({
   },
   rowQty: {
     color: colors.neutral400,
-    fontSize: 15
+    fontSize: 15,
+    fontVariant: ["tabular-nums"]
   }
 });

@@ -2,14 +2,14 @@ import React from "react";
 import { Text, TextInput } from "react-native";
 
 /**
- * expo-font loads Inter as separate static-weight families (Inter_300Light,
- * Inter_400Regular, Inter_500Medium) — there's no single "Inter" family with
- * a variable weight axis, so `fontWeight` alone won't pick the right file.
- * This patches every <Text>/<TextInput> to default to the regular weight;
- * screens that need 300 or 500 set `fontFamily` explicitly alongside their
- * `fontWeight` for the numerals/titles the design calls pixel-fidelity on.
+ * expo-font loads each family as separate static-weight files (e.g.
+ * IBMPlexSans_400Regular) — there's no single family name with a variable
+ * weight axis, so `fontWeight` alone won't pick the right file. This patches
+ * every <Text>/<TextInput> to default to the body font's regular weight;
+ * screens that need Space Grotesk (headings) or another weight set
+ * `fontFamily` explicitly alongside their `fontWeight`.
  */
-const DEFAULT_FONT_FAMILY = "Inter_400Regular";
+const DEFAULT_FONT_FAMILY = "IBMPlexSans_400Regular";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TextRender = (Text as any).render;

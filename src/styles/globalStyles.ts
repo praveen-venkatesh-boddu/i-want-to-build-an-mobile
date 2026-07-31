@@ -63,22 +63,6 @@ export const space = {
   xxl: 32
 };
 
-export const type = {
-  heroNumeral: { fontSize: 76, lineHeight: 65, fontFamily: "Inter_300Light", fontWeight: "300" as const, letterSpacing: -4 },
-  screenTitle2Line: { fontSize: 34, lineHeight: 36, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: -1 },
-  screenTitle1Line: { fontSize: 27, lineHeight: 31, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: -0.3 },
-  sheetTitle: { fontSize: 24, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: -0.4 },
-  bigNumeralRun: { fontSize: 52, lineHeight: 52, fontFamily: "Inter_300Light", fontWeight: "300" as const, letterSpacing: -2 },
-  bigNumeralStat: { fontSize: 40, lineHeight: 40, fontFamily: "Inter_300Light", fontWeight: "300" as const, letterSpacing: -1.5 },
-  rowNameBuy: { fontSize: 19, fontWeight: "400" as const, letterSpacing: -0.2 },
-  rowNameList: { fontSize: 16, fontWeight: "400" as const, letterSpacing: 0 },
-  rowNameShelves: { fontSize: 15, fontWeight: "400" as const, letterSpacing: 0 },
-  body: { fontSize: 14, fontWeight: "400" as const, letterSpacing: 0 },
-  sectionLabel: { fontSize: 11, fontFamily: "Inter_500Medium", fontWeight: "500" as const, letterSpacing: 0.18, textTransform: "uppercase" as const },
-  meta: { fontSize: 12, fontWeight: "400" as const, letterSpacing: 0.02 },
-  numericMeta: { fontSize: 10, fontWeight: "400" as const, letterSpacing: 0.08, textTransform: "uppercase" as const }
-};
-
 // Elevation on a dark ground: an edge plus ambient darkness, not a drop shadow.
 export const shadowSm = {
   borderWidth: 1,
