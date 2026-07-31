@@ -15,7 +15,7 @@ export const shelvesStyles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: 27,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "SpaceGrotesk_500Medium", fontWeight: "500",
     letterSpacing: -0.3
   },
   subtitle: {
@@ -62,8 +62,7 @@ export const shelvesStyles = StyleSheet.create({
   },
   filterButtonText: {
     color: colors.neutral400,
-    fontSize: 13,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontSize: 13
   },
   filterButtonTextActive: {
     color: colors.accent300
@@ -87,7 +86,7 @@ export const shelvesStyles = StyleSheet.create({
   groupName: {
     color: colors.neutral300,
     fontSize: 12,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 1.2,
     textTransform: "uppercase"
   },
@@ -96,7 +95,8 @@ export const shelvesStyles = StyleSheet.create({
   },
   groupCount: {
     color: colors.neutral500,
-    fontSize: 11
+    fontSize: 11,
+    fontVariant: ["tabular-nums"]
   },
 
   row: {
@@ -143,10 +143,11 @@ export const shelvesStyles = StyleSheet.create({
   },
 
   qty: {
-    width: 26,
+    width: 28,
     textAlign: "right",
     color: colors.neutral300,
-    fontSize: 13
+    fontSize: 13,
+    fontVariant: ["tabular-nums"]
   },
 
   footnote: {

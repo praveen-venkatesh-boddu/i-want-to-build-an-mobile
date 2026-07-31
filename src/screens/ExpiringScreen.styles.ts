@@ -16,7 +16,7 @@ export const expiringStyles = StyleSheet.create({
     color: colors.text,
     fontSize: 34,
     lineHeight: 36,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "SpaceGrotesk_500Medium", fontWeight: "500",
     letterSpacing: -1
   },
   subtitle: {
@@ -43,8 +43,9 @@ export const expiringStyles = StyleSheet.create({
   },
   dayNumber: {
     fontSize: 32,
-    fontFamily: "Inter_300Light", fontWeight: "300",
-    letterSpacing: -1
+    fontFamily: "IBMPlexSans_300Light", fontWeight: "300",
+    fontVariant: ["tabular-nums"],
+    letterSpacing: -0.5
   },
   dayUnit: {
     color: colors.neutral500,
@@ -57,7 +58,8 @@ export const expiringStyles = StyleSheet.create({
   },
   rowName: {
     color: colors.text,
-    fontSize: 19
+    fontSize: 19,
+    fontFamily: "SpaceGrotesk_400Regular", fontWeight: "400"
   },
   rowMeta: {
     color: colors.neutral500,
@@ -75,7 +77,7 @@ export const expiringStyles = StyleSheet.create({
   useButtonText: {
     color: colors.accent,
     fontSize: 12,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
 
   emptyState: {

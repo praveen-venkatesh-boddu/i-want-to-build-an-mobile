@@ -1,15 +1,12 @@
-import {
-  Inter_300Light,
-  Inter_400Regular,
-  Inter_500Medium,
-  useFonts
-} from "@expo-google-fonts/inter";
+import { IBMPlexSans_300Light, IBMPlexSans_400Regular, IBMPlexSans_500Medium } from "@expo-google-fonts/ibm-plex-sans";
+import { SpaceGrotesk_300Light, SpaceGrotesk_400Regular, SpaceGrotesk_500Medium } from "@expo-google-fonts/space-grotesk";
+import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-import "./src/styles/interFont";
+import "./src/styles/defaultFont";
 import { BottomNavBar } from "./src/components/BottomNavBar";
 import { HouseholdSheet } from "./src/components/HouseholdSheet";
 import { ItemSheet } from "./src/components/ItemSheet";
@@ -33,7 +30,14 @@ import { addDaysToISO, daysSince, daysUntil, todayISO } from "./src/utils/date";
 import type { FilterKey, ItemDraft, PantryItem, Screen } from "./src/types/pantry";
 
 export default function App() {
-  const [fontsLoaded] = useFonts({ Inter_300Light, Inter_400Regular, Inter_500Medium });
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_300Light,
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    IBMPlexSans_300Light,
+    IBMPlexSans_400Regular,
+    IBMPlexSans_500Medium
+  });
 
   const [items, setItems] = useState<PantryItem[]>(starterItems);
   const [hasLoaded, setHasLoaded] = useState(false);

@@ -27,7 +27,7 @@ export const runStyles = StyleSheet.create({
   eyebrow: {
     color: colors.accent,
     fontSize: 10,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 2,
     textTransform: "uppercase"
   },
@@ -42,9 +42,9 @@ export const runStyles = StyleSheet.create({
   countNumber: {
     color: colors.text,
     fontSize: 52,
-    // No explicit lineHeight — RN clips glyphs when it's <= fontSize for
-    // this weight (see ListScreen.styles.ts heroCount for the same issue).
-    fontFamily: "Inter_300Light", fontWeight: "300",
+    // No explicit lineHeight — clips in RN native text layout otherwise.
+    // Uses the heading face (not the tabular numeral face) per the design.
+    fontFamily: "SpaceGrotesk_300Light", fontWeight: "300",
     letterSpacing: -2
   },
   countLabel: {
@@ -76,7 +76,7 @@ export const runStyles = StyleSheet.create({
   groupLabel: {
     color: colors.neutral500,
     fontSize: 10,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 1.6,
     textTransform: "uppercase",
     paddingHorizontal: spacing.screenH,
@@ -164,7 +164,7 @@ export const runStyles = StyleSheet.create({
   finishText: {
     color: colors.accent,
     fontSize: 15,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
   scanButton: {
     flexDirection: "row",
@@ -177,6 +177,6 @@ export const runStyles = StyleSheet.create({
   },
   scanText: {
     color: colors.neutral300,
-    fontSize: 14
+    fontSize: 15
   }
 });

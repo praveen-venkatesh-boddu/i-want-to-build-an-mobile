@@ -25,7 +25,7 @@ export const itemEditorStyles = StyleSheet.create({
   modalTitle: {
     color: colors.text,
     fontSize: 20,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0
   },
 
@@ -36,7 +36,7 @@ export const itemEditorStyles = StyleSheet.create({
   secondaryButtonText: {
     color: colors.neutral400,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
@@ -50,7 +50,7 @@ export const itemEditorStyles = StyleSheet.create({
   saveButtonText: {
     color: colors.accent,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
@@ -65,7 +65,7 @@ export const itemEditorStyles = StyleSheet.create({
   fieldLabel: {
     color: colors.neutral400,
     fontSize: 12,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.5,
     marginBottom: 8,
     textTransform: "uppercase"
@@ -96,7 +96,7 @@ export const itemEditorStyles = StyleSheet.create({
   scanButtonText: {
     color: colors.neutral300,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
 
@@ -117,13 +117,13 @@ export const itemEditorStyles = StyleSheet.create({
   lookupButtonText: {
     color: colors.neutral300,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   },
   scanMessage: {
     color: colors.accent300,
     fontSize: 12,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.4,
     marginTop: space.sm
   },
@@ -244,7 +244,7 @@ export const itemEditorStyles = StyleSheet.create({
   },
   dropdownOptionTextActive: {
     color: colors.accent300,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
 
   // ── Checkbox / Toggle ─────────────────────────────────────────────────
@@ -285,7 +285,7 @@ export const itemEditorStyles = StyleSheet.create({
   deleteButtonText: {
     color: colors.danger,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 0.1
   }
 });

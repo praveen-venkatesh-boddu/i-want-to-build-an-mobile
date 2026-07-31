@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: 24,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "SpaceGrotesk_500Medium", fontWeight: "500",
     letterSpacing: -0.4
   },
   body: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: colors.accent100,
     fontSize: 12,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
   memberInfo: {
     flex: 1
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   inviteText: {
     color: colors.accent,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
   closeButton: {
     alignItems: "center",

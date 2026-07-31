@@ -33,7 +33,7 @@ export const listStyles = StyleSheet.create({
   eyebrow: {
     color: colors.accent,
     fontSize: 10,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 2,
     textTransform: "uppercase"
   },
@@ -50,16 +50,16 @@ export const listStyles = StyleSheet.create({
   heroCount: {
     color: colors.text,
     fontSize: 76,
-    // No explicit lineHeight: the design's 65 (CSS-derived) is shorter than
-    // the glyph itself needs and clips digits top/bottom in RN's native text
-    // layout (unlike a browser). Let RN size the line box from font metrics.
-    fontFamily: "Inter_300Light", fontWeight: "300",
-    letterSpacing: -4
+    // No explicit lineHeight: it clips digits top/bottom in RN's native text
+    // layout when shorter than the glyph needs (unlike a browser).
+    fontFamily: "IBMPlexSans_300Light", fontWeight: "300",
+    fontVariant: ["tabular-nums"],
+    letterSpacing: -3
   },
   heroLabel: {
     color: colors.accent300,
     fontSize: 17,
-    fontWeight: "400",
+    fontFamily: "SpaceGrotesk_400Regular", fontWeight: "400",
     marginLeft: 10,
     paddingBottom: 6
   },
@@ -79,7 +79,7 @@ export const listStyles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 13,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
   startButton: {
     borderColor: colors.accent
@@ -112,7 +112,7 @@ export const listStyles = StyleSheet.create({
   sectionLabel: {
     color: colors.neutral500,
     fontSize: 11,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 1
   },
   sectionLabelRight: {
@@ -135,7 +135,7 @@ export const listStyles = StyleSheet.create({
   rowName: {
     color: colors.text,
     fontSize: 19,
-    fontWeight: "400",
+    fontFamily: "SpaceGrotesk_400Regular", fontWeight: "400",
     letterSpacing: -0.2
   },
   rowDays: {
@@ -161,7 +161,7 @@ export const listStyles = StyleSheet.create({
   emptyHeading: {
     color: colors.neutral300,
     fontSize: 17,
-    fontWeight: "400"
+    fontFamily: "SpaceGrotesk_400Regular", fontWeight: "400"
   },
   emptyBody: {
     color: colors.neutral500,
@@ -197,9 +197,10 @@ export const listStyles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 40,
-    // Same clipping risk as heroCount above — omit lineHeight.
-    fontFamily: "Inter_300Light", fontWeight: "300",
-    letterSpacing: -1.5
+    // No explicit lineHeight — same native clipping risk as heroCount above.
+    fontFamily: "IBMPlexSans_300Light", fontWeight: "300",
+    fontVariant: ["tabular-nums"],
+    letterSpacing: -1
   },
   statLabel: {
     fontSize: 12,

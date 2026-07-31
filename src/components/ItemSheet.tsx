@@ -71,7 +71,7 @@ export function ItemSheet({
               style={[styles.chip, item.opened && styles.chipActive]}
               onPress={() => onToggleOpened(item)}
             >
-              <Text style={[styles.chipText, item.opened && styles.chipTextActive]}>
+              <Text style={[styles.chipTextBold, item.opened && styles.chipTextActive]}>
                 {item.opened ? "Opened" : "Unopened"}
               </Text>
             </Pressable>
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   name: {
     color: colors.text,
     fontSize: 24,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "SpaceGrotesk_500Medium", fontWeight: "500",
     letterSpacing: -0.4
   },
   meta: {
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
   stepValue: {
     color: colors.text,
     fontSize: 24,
+    fontVariant: ["tabular-nums"],
     minWidth: 26,
     textAlign: "center"
   },
@@ -199,6 +200,11 @@ const styles = StyleSheet.create({
     color: colors.neutral400,
     fontSize: 12
   },
+  chipTextBold: {
+    color: colors.neutral400,
+    fontSize: 12,
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
+  },
   chipTextActive: {
     color: colors.accent300
   },
@@ -214,6 +220,6 @@ const styles = StyleSheet.create({
   doneText: {
     color: colors.accent,
     fontSize: 15,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   }
 });

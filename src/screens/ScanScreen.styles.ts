@@ -35,7 +35,7 @@ export const scanStyles = StyleSheet.create({
   topEyebrow: {
     color: colors.neutral300,
     fontSize: 10,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 2,
     textTransform: "uppercase"
   },
@@ -111,7 +111,8 @@ export const scanStyles = StyleSheet.create({
   },
   idleHintText: {
     color: colors.accent300,
-    fontSize: 13
+    fontSize: 13,
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
 
   foundPanel: {
@@ -129,13 +130,13 @@ export const scanStyles = StyleSheet.create({
   foundEyebrow: {
     color: colors.accent,
     fontSize: 10,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
     letterSpacing: 1.8
   },
   productName: {
     color: colors.text,
     fontSize: 26,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "SpaceGrotesk_500Medium", fontWeight: "500",
     letterSpacing: -0.6,
     marginTop: 8,
     padding: 0
@@ -181,6 +182,7 @@ export const scanStyles = StyleSheet.create({
   stepValue: {
     color: colors.text,
     fontSize: 22,
+    fontVariant: ["tabular-nums"],
     minWidth: 24,
     textAlign: "center"
   },
@@ -216,7 +218,7 @@ export const scanStyles = StyleSheet.create({
   placeChipText: {
     color: colors.neutral400,
     fontSize: 12,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
   placeChipTextActive: {
     color: colors.accent300
@@ -238,7 +240,7 @@ export const scanStyles = StyleSheet.create({
   addButtonText: {
     color: colors.accent,
     fontSize: 15,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
   rescanButton: {
     alignItems: "center",
@@ -263,7 +265,7 @@ export const scanStyles = StyleSheet.create({
   permissionTitle: {
     color: colors.text,
     fontSize: 19,
-    fontFamily: "Inter_500Medium", fontWeight: "500",
+    fontFamily: "SpaceGrotesk_500Medium", fontWeight: "500",
     textAlign: "center"
   },
   permissionBody: {
@@ -283,7 +285,7 @@ export const scanStyles = StyleSheet.create({
   permissionButtonText: {
     color: colors.accent,
     fontSize: 14,
-    fontFamily: "Inter_500Medium", fontWeight: "500"
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
   permissionCancel: {
     marginTop: 14
