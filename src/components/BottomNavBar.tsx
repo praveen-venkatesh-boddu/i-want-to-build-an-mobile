@@ -7,7 +7,6 @@ import {
 } from "phosphor-react-native";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { accentGlow, colors } from "../styles/globalStyles";
 import type { Screen } from "../types/pantry";
@@ -21,10 +20,11 @@ const TAB_HEIGHT = 66;
 const SCAN_CIRCLE = 46;
 
 export function BottomNavBar({ screen, onSelectScreen }: BottomNavBarProps) {
-  const insets = useSafeAreaInsets();
-
+  // No safe-area handling here: BottomNavBar always renders inside App.tsx's
+  // outer SafeAreaView, which already pads the bottom inset for the whole
+  // screen. Adding it again here doubled the gap below the icon row.
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 0), height: TAB_HEIGHT + Math.max(insets.bottom, 0) }]}>
+    <View style={styles.bar}>
       <NavItem icon={ListDashes} active={screen === "list"} onPress={() => onSelectScreen("list")} label="List" />
       <NavItem icon={Stack} active={screen === "shelves"} onPress={() => onSelectScreen("shelves")} label="Shelves" />
 
