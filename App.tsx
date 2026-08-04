@@ -191,7 +191,7 @@ export default function App() {
     setShelfDraft(shelf);
   }
 
-  function moveShelf(id: string, direction: -1 | 1) {
+  function moveShelf(id: string, direction: number) {
     setShelves((prev) => {
       const from = prev.findIndex((sh) => sh.id === id);
       const to = from + direction;
