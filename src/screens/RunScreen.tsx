@@ -2,14 +2,14 @@ import { ArrowLeft, Barcode, Check } from "phosphor-react-native";
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { groupForLocation } from "../constants/pantry";
 import { colors } from "../styles/globalStyles";
-import type { PantryItem } from "../types/pantry";
+import type { PantryItem, Shelf, ShelfZone } from "../types/pantry";
 import { daysSince } from "../utils/date";
 import { runStyles as s } from "./RunScreen.styles";
 
 type RunScreenProps = {
   runItems: PantryItem[];
+  shelves: Shelf[];
   basket: Record<string, boolean>;
   onToggleBasket: (item: PantryItem) => void;
   onPause: () => void;
@@ -19,10 +19,9 @@ type RunScreenProps = {
   onScan: () => void;
 };
 
-const GROCERY_PLACES = new Set(["Fridge", "Freezer drawer", "Pantry shelf"]);
-
 export function RunScreen({
   runItems,
+  shelves,
   basket,
   onToggleBasket,
   onPause,
@@ -36,13 +35,15 @@ export function RunScreen({
   const isEmptyRun = runItems.length === 0;
 
   const groups = useMemo(() => {
-    const grocery = runItems.filter((item) => GROCERY_PLACES.has(groupForLocation(item.location)));
-    const household = runItems.filter((item) => !GROCERY_PLACES.has(groupForLocation(item.location)));
+    const zoneByLocation = new Map(shelves.map((shelf) => [shelf.name, shelf.zone]));
+    const zoneFor = (item: PantryItem): ShelfZone => zoneByLocation.get(item.location) ?? "Household";
+    const grocery = runItems.filter((item) => zoneFor(item) === "Grocery");
+    const household = runItems.filter((item) => zoneFor(item) === "Household");
     return [
       { label: "Grocery", rows: grocery },
       { label: "Household", rows: household }
     ].filter((group) => group.rows.length > 0);
-  }, [runItems]);
+  }, [runItems, shelves]);
 
   let finishLabel: string;
   let onFinishPress: () => void;

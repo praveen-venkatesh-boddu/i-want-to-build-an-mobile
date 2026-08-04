@@ -1,17 +1,18 @@
-import { Cube, Drop, Funnel, MagnifyingGlass, Snowflake } from "phosphor-react-native";
+import { Funnel, MagnifyingGlass } from "phosphor-react-native";
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { FadeRule } from "../components/FadeRule";
-import { PLACE_GROUPS, groupForLocation } from "../constants/pantry";
+import { SHELF_ICON_COMPONENTS } from "../constants/shelves";
 import { colors } from "../styles/globalStyles";
-import type { FilterKey, PantryItem } from "../types/pantry";
+import type { FilterKey, PantryItem, Shelf } from "../types/pantry";
 import { daysUntil, formatShortDate } from "../utils/date";
 import { shelvesStyles as s } from "./ShelvesScreen.styles";
 
 type ShelvesScreenProps = {
   allItems: PantryItem[];
   filteredItems: PantryItem[];
+  shelves: Shelf[];
   filter: FilterKey;
   onCycleFilter: () => void;
   onGoSearch: () => void;
@@ -25,42 +26,43 @@ const FILTER_LABEL: Record<FilterKey, string> = {
   opened: "Opened"
 };
 
-const GROUP_ICON: Record<(typeof PLACE_GROUPS)[number], typeof Cube> = {
-  "Pantry shelf": Cube,
-  Fridge: Drop,
-  "Freezer drawer": Snowflake,
-  "Under the sink": Drop,
-  Utility: Cube,
-  Bathroom: Drop
-};
-
 export function ShelvesScreen({
   allItems,
   filteredItems,
+  shelves,
   filter,
   onCycleFilter,
   onGoSearch,
   onOpenItem
 }: ShelvesScreenProps) {
-  const placeCount = useMemo(() => {
-    const groups = new Set(allItems.map((item) => groupForLocation(item.location)));
-    return groups.size;
-  }, [allItems]);
+  const openShelves = useMemo(() => shelves.filter((shelf) => !shelf.hidden), [shelves]);
+
+  const shelvedCount = useMemo(() => {
+    const openNames = new Set(openShelves.map((shelf) => shelf.name));
+    return allItems.filter((item) => openNames.has(item.location)).length;
+  }, [allItems, openShelves]);
+
+  const withheldCount = allItems.length - shelvedCount;
 
   const groups = useMemo(() => {
-    return PLACE_GROUPS.map((place) => ({
-      place,
-      rows: filteredItems.filter((item) => groupForLocation(item.location) === place)
-    })).filter((group) => group.rows.length > 0);
-  }, [filteredItems]);
+    return openShelves
+      .map((shelf) => ({
+        shelf,
+        rows: filteredItems.filter((item) => item.location === shelf.name)
+      }))
+      .filter((group) => group.rows.length > 0);
+  }, [filteredItems, openShelves]);
 
   return (
     <View style={s.shell}>
       <View style={s.titleBlock}>
         <Text style={s.title}>Shelves</Text>
         <Text style={s.subtitle}>
-          {allItems.length} {allItems.length === 1 ? "item" : "items"} across {placeCount}{" "}
-          {placeCount === 1 ? "place" : "places"}
+          {shelvedCount} {shelvedCount === 1 ? "item" : "items"} across {openShelves.length}{" "}
+          {openShelves.length === 1 ? "shelf" : "shelves"}
+          {withheldCount > 0
+            ? ` · ${withheldCount} ${withheldCount === 1 ? "item is" : "items are"} on a hidden shelf`
+            : ""}
         </Text>
       </View>
 
@@ -83,16 +85,16 @@ export function ShelvesScreen({
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.list}>
         {groups.map((group, groupIndex) => {
-          const GroupIcon = GROUP_ICON[group.place];
+          const GroupIcon = SHELF_ICON_COMPONENTS[group.shelf.icon];
           const hasExpiringSoon = group.rows.some(
             (item) => item.quantity > 0 && daysUntil(item.expiresOn) <= 7
           );
 
           return (
-            <View key={group.place}>
+            <View key={group.shelf.id}>
               <View style={[s.groupHeader, groupIndex === 0 && s.groupHeaderFirst]}>
                 <GroupIcon size={15} color={hasExpiringSoon ? colors.accent : colors.neutral400} weight="regular" />
-                <Text style={s.groupName}>{group.place}</Text>
+                <Text style={s.groupName}>{group.shelf.name}</Text>
                 <FadeRule style={s.groupRule} color={colors.neutral800} />
                 <Text style={s.groupCount}>{group.rows.length}</Text>
               </View>
