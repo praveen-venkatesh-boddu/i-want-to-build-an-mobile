@@ -10,8 +10,10 @@ import "./src/styles/defaultFont";
 import { BottomNavBar } from "./src/components/BottomNavBar";
 import { HouseholdSheet } from "./src/components/HouseholdSheet";
 import { ItemSheet } from "./src/components/ItemSheet";
+import { ShelfSheet } from "./src/components/ShelfSheet";
 import { Toast } from "./src/components/Toast";
-import { filters, groupForLocation, makeEmptyDraft, starterItems } from "./src/constants/pantry";
+import { filters, makeEmptyDraft, starterItems } from "./src/constants/pantry";
+import { DEFAULT_SHELF_ID, SHELF_SEED } from "./src/constants/shelves";
 import {
   cancelDeferReminder,
   requestNotificationPermissions,
@@ -23,11 +25,13 @@ import { ListScreen } from "./src/screens/ListScreen";
 import { RunScreen } from "./src/screens/RunScreen";
 import { ScanScreen } from "./src/screens/ScanScreen";
 import { SearchScreen } from "./src/screens/SearchScreen";
+import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { ShelvesScreen } from "./src/screens/ShelvesScreen";
 import { loadBasket, loadPantryItems, savePantryItems, saveBasket } from "./src/storage/pantryStorage";
+import { loadShelves, loadSettings, saveShelves, saveSettings } from "./src/storage/shelfStorage";
 import { globalStyles } from "./src/styles/globalStyles";
 import { addDaysToISO, daysSince, daysUntil, todayISO } from "./src/utils/date";
-import type { FilterKey, ItemDraft, PantryItem, Screen } from "./src/types/pantry";
+import type { FilterKey, ItemDraft, NotifSettings, PantryItem, Screen, Shelf } from "./src/types/pantry";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -43,6 +47,13 @@ export default function App() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [basket, setBasket] = useState<Record<string, boolean>>({});
   const [basketLoaded, setBasketLoaded] = useState(false);
+
+  const [shelves, setShelves] = useState<Shelf[]>(SHELF_SEED);
+  const [shelvesLoaded, setShelvesLoaded] = useState(false);
+  const [defaultShelfId, setDefaultShelfId] = useState<string | null>(DEFAULT_SHELF_ID);
+  const [notif, setNotif] = useState<NotifSettings>({ expiry: true, low: false });
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [shelfDraft, setShelfDraft] = useState<Shelf | null>(null);
 
   const [screen, setScreen] = useState<Screen>("list");
   const [running, setRunning] = useState(false);
@@ -69,6 +80,19 @@ export default function App() {
       .then((stored) => { if (stored) setBasket(stored); })
       .catch(() => {})
       .finally(() => setBasketLoaded(true));
+    loadShelves()
+      .then((stored) => { if (stored) setShelves(stored); })
+      .catch(() => {})
+      .finally(() => setShelvesLoaded(true));
+    loadSettings()
+      .then((stored) => {
+        if (stored) {
+          setDefaultShelfId(stored.defaultShelfId);
+          setNotif(stored.notif);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSettingsLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -82,6 +106,16 @@ export default function App() {
     if (!basketLoaded) return;
     void saveBasket(basket);
   }, [basketLoaded, basket]);
+
+  useEffect(() => {
+    if (!shelvesLoaded) return;
+    void saveShelves(shelves);
+  }, [shelvesLoaded, shelves]);
+
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    void saveSettings({ defaultShelfId, notif });
+  }, [settingsLoaded, defaultShelfId, notif]);
 
   // ── Derived data ───────────────────────────────────────────────────────
   const today = todayISO();
@@ -110,10 +144,14 @@ export default function App() {
     [items]
   );
 
-  const shelvesCount = useMemo(
-    () => new Set(items.map((i) => groupForLocation(i.location))).size,
-    [items]
-  );
+  const openShelves = useMemo(() => shelves.filter((sh) => !sh.hidden), [shelves]);
+
+  const shelvedItems = useMemo(() => {
+    const openNames = new Set(openShelves.map((sh) => sh.name));
+    return items.filter((i) => openNames.has(i.location));
+  }, [items, openShelves]);
+
+  const shelvesCount = openShelves.length;
 
   const runSource = useMemo(
     () => [...buyList, ...items.filter((i) => basket[i.id] && i.deferredUntil && i.deferredUntil > today)],
@@ -132,6 +170,89 @@ export default function App() {
   }, [filter, items]);
 
   const sheetItem = useMemo(() => items.find((i) => i.id === sheetId) ?? null, [items, sheetId]);
+
+  const committedShelf = useMemo(
+    () => (shelfDraft ? shelves.find((sh) => sh.id === shelfDraft.id) ?? null : null),
+    [shelfDraft, shelves]
+  );
+  const shelfDraftItemCount = useMemo(
+    () => (committedShelf ? items.filter((i) => i.location === committedShelf.name).length : 0),
+    [committedShelf, items]
+  );
+
+  // ── Shelf & settings actions ─────────────────────────────────────────────
+  function openShelfSheet(shelf: Shelf) {
+    setShelfDraft({ ...shelf });
+  }
+
+  function addShelf() {
+    const shelf: Shelf = { id: `shelf${Date.now()}`, name: "", icon: "cube", zone: "Household", hidden: false };
+    setShelves((prev) => [...prev, shelf]);
+    setShelfDraft(shelf);
+  }
+
+  function moveShelf(id: string, direction: -1 | 1) {
+    setShelves((prev) => {
+      const from = prev.findIndex((sh) => sh.id === id);
+      const to = from + direction;
+      if (from === -1 || to < 0 || to >= prev.length) return prev;
+      const next = prev.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+
+  function makeDefaultShelf() {
+    if (!shelfDraft) return;
+    if (shelfDraft.hidden) {
+      flashToast("Unhide the shelf before making it the default.");
+      return;
+    }
+    setDefaultShelfId(shelfDraft.id);
+  }
+
+  function toggleShelfHidden() {
+    if (!shelfDraft) return;
+    const next = !shelfDraft.hidden;
+    if (next && defaultShelfId === shelfDraft.id) {
+      flashToast("That was the default shelf — pick a new one.");
+      setDefaultShelfId(null);
+    }
+    setShelfDraft((prev) => (prev ? { ...prev, hidden: next } : prev));
+  }
+
+  function deleteShelfDraft() {
+    if (!shelfDraft || !committedShelf) return;
+    if (shelfDraftItemCount > 0) {
+      flashToast(
+        `Move its ${shelfDraftItemCount} ${shelfDraftItemCount === 1 ? "item" : "items"} somewhere else first.`
+      );
+      return;
+    }
+    const name = committedShelf.name || "That shelf";
+    setShelves((prev) => prev.filter((sh) => sh.id !== shelfDraft.id));
+    setDefaultShelfId((prev) => (prev === shelfDraft.id ? null : prev));
+    setShelfDraft(null);
+    flashToast(`${name} deleted.`);
+  }
+
+  function saveShelfDraft() {
+    if (!shelfDraft) return;
+    const oldName = committedShelf?.name ?? "";
+    const name = shelfDraft.name.trim() || oldName || "New shelf";
+    const clash = shelves.some((sh) => sh.id !== shelfDraft.id && sh.name.toLowerCase() === name.toLowerCase());
+    const finalName = clash ? `${name} 2` : name;
+    setShelves((prev) => prev.map((sh) => (sh.id === shelfDraft.id ? { ...shelfDraft, name: finalName } : sh)));
+    if (oldName && oldName !== finalName) {
+      setItems((prev) => prev.map((i) => (i.location === oldName ? { ...i, location: finalName } : i)));
+    }
+    setShelfDraft(null);
+  }
+
+  function toggleNotif(key: keyof NotifSettings) {
+    setNotif((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   // ── Item sheet actions ────────────────────────────────────────────────
   function stepItem(item: PantryItem, delta: number) {
@@ -312,8 +433,8 @@ export default function App() {
     setFilter(filters[(idx + 1) % filters.length].key);
   }
 
-  const ready = fontsLoaded && hasLoaded && basketLoaded;
-  const showNavBar = screen !== "run" && screen !== "scan";
+  const ready = fontsLoaded && hasLoaded && basketLoaded && shelvesLoaded && settingsLoaded;
+  const showNavBar = screen !== "run" && screen !== "scan" && screen !== "settings";
 
   return (
     <SafeAreaProvider>
@@ -336,11 +457,11 @@ export default function App() {
                 buyList={buyList}
                 snoozedItems={snoozedItems}
                 expiringCount={expiringItems.length}
-                totalCount={items.length}
+                totalCount={shelvedItems.length}
                 shelvesCount={shelvesCount}
                 onStartRun={startRun}
                 onOpenHousehold={() => setHouseholdOpen(true)}
-                onOpenSettings={() => flashToast("Settings isn't built yet.")}
+                onOpenSettings={() => setScreen("settings")}
                 onOpenItem={(item) => setSheetId(item.id)}
                 onGoExpiring={() => setScreen("expiring")}
                 onGoShelves={() => setScreen("shelves")}
@@ -355,6 +476,7 @@ export default function App() {
               <ShelvesScreen
                 allItems={items}
                 filteredItems={shelvesFiltered}
+                shelves={shelves}
                 filter={filter}
                 onCycleFilter={cycleFilter}
                 onGoSearch={() => setScreen("search")}
@@ -365,6 +487,7 @@ export default function App() {
             {screen === "run" && (
               <RunScreen
                 runItems={runSource}
+                shelves={shelves}
                 basket={basket}
                 onToggleBasket={toggleBasket}
                 onPause={() => setScreen("list")}
@@ -397,8 +520,24 @@ export default function App() {
 
             {screen === "scan" && (
               <ScanScreen
+                shelves={shelves}
+                defaultShelfId={defaultShelfId}
                 onClose={() => setScreen(running ? "run" : "list")}
                 onAddToShelf={addFromScan}
+              />
+            )}
+
+            {screen === "settings" && (
+              <SettingsScreen
+                shelves={shelves}
+                defaultShelfId={defaultShelfId}
+                notif={notif}
+                items={items}
+                onBack={() => setScreen("list")}
+                onOpenShelf={openShelfSheet}
+                onAddShelf={addShelf}
+                onMoveShelf={moveShelf}
+                onToggleNotif={toggleNotif}
               />
             )}
 
@@ -412,6 +551,19 @@ export default function App() {
               onSnooze={snoozeItem}
               onUnsnooze={unsnoozeItem}
               onEditDetails={editDetails}
+            />
+
+            <ShelfSheet
+              draft={shelfDraft}
+              itemCount={shelfDraftItemCount}
+              isDefault={!!shelfDraft && shelfDraft.id === defaultShelfId}
+              onChangeName={(name) => setShelfDraft((prev) => (prev ? { ...prev, name } : prev))}
+              onPickIcon={(icon) => setShelfDraft((prev) => (prev ? { ...prev, icon } : prev))}
+              onPickZone={(zone) => setShelfDraft((prev) => (prev ? { ...prev, zone } : prev))}
+              onMakeDefault={makeDefaultShelf}
+              onToggleHidden={toggleShelfHidden}
+              onDelete={deleteShelfDraft}
+              onSave={saveShelfDraft}
             />
 
             <HouseholdSheet

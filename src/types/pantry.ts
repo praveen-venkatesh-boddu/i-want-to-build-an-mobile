@@ -24,10 +24,27 @@ export type ItemDraft = Omit<PantryItem, "id" | "quantity" | "opened"> & {
 
 export type FilterKey = "all" | "expiring" | "low" | "opened";
 
-export type Screen = "list" | "run" | "shelves" | "expiring" | "search" | "scan";
+export type Screen = "list" | "run" | "shelves" | "expiring" | "search" | "scan" | "settings";
 
 export type PantryStats = {
   total: number;
   expiring: number;
   low: number;
+};
+
+export type ShelfIconKey = "jar" | "cube" | "drop" | "snowflake" | "spray" | "layers";
+
+export type ShelfZone = "Grocery" | "Household";
+
+export type Shelf = {
+  id: string;
+  name: string;
+  icon: ShelfIconKey;
+  zone: ShelfZone;
+  hidden: boolean;
+};
+
+export type NotifSettings = {
+  expiry: boolean;
+  low: boolean;
 };

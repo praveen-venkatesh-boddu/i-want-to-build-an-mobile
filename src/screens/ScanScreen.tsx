@@ -6,17 +6,19 @@ import {
 } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { Minus, Plus, X } from "phosphor-react-native";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FadeRule } from "../components/FadeRule";
-import { SCAN_PLACE_CHIPS } from "../constants/pantry";
 import { lookupProductByBarcode } from "../services/productLookup";
 import { colors } from "../styles/globalStyles";
+import type { Shelf } from "../types/pantry";
 import { scanStyles as s } from "./ScanScreen.styles";
 
 type ScanScreenProps = {
+  shelves: Shelf[];
+  defaultShelfId: string | null;
   onClose: () => void;
   onAddToShelf: (input: {
     name: string;
@@ -28,6 +30,18 @@ type ScanScreenProps = {
     quantity: number;
   }) => void;
 };
+
+/** Default shelf first, then the rest in order, capped at 3 — plus the currently
+ * selected place if it'd otherwise fall outside that set. */
+function scanChips(shelves: Shelf[], defaultShelfId: string | null, currentPlace: string): Shelf[] {
+  const open = shelves.filter((shelf) => !shelf.hidden);
+  const def = open.find((shelf) => shelf.id === defaultShelfId);
+  const ordered = def ? [def, ...open.filter((shelf) => shelf !== def)] : open;
+  const shown = ordered.slice(0, 3);
+  const current = open.find((shelf) => shelf.name === currentPlace);
+  if (current && !shown.includes(current)) shown[shown.length - 1] = current;
+  return shown;
+}
 
 const SUPPORTED_BARCODE_TYPES: BarcodeType[] = [
   "ean13",
@@ -50,13 +64,19 @@ type FoundState = {
   unit: string;
 };
 
-export function ScanScreen({ onClose, onAddToShelf }: ScanScreenProps) {
+export function ScanScreen({ shelves, defaultShelfId, onClose, onAddToShelf }: ScanScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<"idle" | "found">("idle");
   const [found, setFound] = useState<FoundState | null>(null);
   const [qty, setQty] = useState(1);
-  const [place, setPlace] = useState<string>(SCAN_PLACE_CHIPS[0]);
+  const defaultShelfName = useMemo(() => {
+    const open = shelves.filter((shelf) => !shelf.hidden);
+    const def = open.find((shelf) => shelf.id === defaultShelfId);
+    return (def ?? open[0])?.name ?? "";
+  }, [shelves, defaultShelfId]);
+  const [place, setPlace] = useState<string>(defaultShelfName);
+  const chips = useMemo(() => scanChips(shelves, defaultShelfId, place), [shelves, defaultShelfId, place]);
 
   async function handleScanned(result: BarcodeScanningResult) {
     if (step !== "idle" || !result.data) return;
@@ -70,7 +90,7 @@ export function ScanScreen({ onClose, onAddToShelf }: ScanScreenProps) {
       unit: lookup?.unit ?? "items"
     });
     setQty(1);
-    setPlace(SCAN_PLACE_CHIPS[0]);
+    setPlace(defaultShelfName);
     setStep("found");
   }
 
@@ -192,14 +212,14 @@ export function ScanScreen({ onClose, onAddToShelf }: ScanScreenProps) {
             <View style={s.goesOnRow}>
               <Text style={s.goesOnLabel}>Goes on</Text>
               <View style={s.placeChips}>
-                {SCAN_PLACE_CHIPS.map((chip) => (
+                {chips.map((chip) => (
                   <Pressable
-                    key={chip}
-                    style={[s.placeChip, place === chip && s.placeChipActive]}
-                    onPress={() => setPlace(chip)}
+                    key={chip.id}
+                    style={[s.placeChip, place === chip.name && s.placeChipActive]}
+                    onPress={() => setPlace(chip.name)}
                   >
-                    <Text style={[s.placeChipText, place === chip && s.placeChipTextActive]}>
-                      {chip}
+                    <Text style={[s.placeChipText, place === chip.name && s.placeChipTextActive]}>
+                      {chip.name}
                     </Text>
                   </Pressable>
                 ))}
