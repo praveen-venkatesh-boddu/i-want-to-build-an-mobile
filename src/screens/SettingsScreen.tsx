@@ -15,7 +15,7 @@ type SettingsScreenProps = {
   onBack: () => void;
   onOpenShelf: (shelf: Shelf) => void;
   onAddShelf: () => void;
-  onMoveShelf: (id: string, direction: -1 | 1) => void;
+  onMoveShelf: (id: string, direction: number) => void;
   onToggleNotif: (key: keyof NotifSettings) => void;
 };
 
