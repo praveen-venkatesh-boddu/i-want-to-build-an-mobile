@@ -20,18 +20,21 @@ import {
   scheduleDeferReminder
 } from "./src/services/notifications";
 import { ExpiringScreen } from "./src/screens/ExpiringScreen";
-import { ItemEditorScreen } from "./src/screens/ItemEditorScreen";
+import { ItemEditorScreen, type NameProvenance } from "./src/screens/ItemEditorScreen";
 import { ListScreen } from "./src/screens/ListScreen";
 import { RunScreen } from "./src/screens/RunScreen";
 import { ScanScreen } from "./src/screens/ScanScreen";
 import { SearchScreen } from "./src/screens/SearchScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { ShelvesScreen } from "./src/screens/ShelvesScreen";
+import { recordScan } from "./src/services/scanLog";
+import type { LookupOutcome } from "./src/services/productLookup";
 import { loadBasket, loadPantryItems, savePantryItems, saveBasket } from "./src/storage/pantryStorage";
 import { loadShelves, loadSettings, saveShelves, saveSettings } from "./src/storage/shelfStorage";
 import { globalStyles } from "./src/styles/globalStyles";
 import { addDaysToISO, daysSince, daysUntil, todayISO } from "./src/utils/date";
 import type { FilterKey, ItemDraft, NotifSettings, PantryItem, Screen, Shelf } from "./src/types/pantry";
+import type { OcrBlock } from "./src/types/label";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -65,6 +68,15 @@ export default function App() {
 
   const [draft, setDraft] = useState<ItemDraft>(makeEmptyDraft);
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+  const [isAddingItem, setIsAddingItem] = useState(false);
+
+  // How the open draft got prefilled, plus the evidence behind it. Drives the
+  // editor's confidence behaviour and everything the scan log records.
+  const [provenance, setProvenance] = useState<NameProvenance | undefined>(undefined);
+  const [pendingScan, setPendingScan] = useState<{
+    guess: LookupOutcome["result"];
+    blocks?: OcrBlock[];
+  } | null>(null);
 
   // ── Permissions & persistence ────────────────────────────────────────────
   useEffect(() => {
@@ -300,6 +312,10 @@ export default function App() {
       notes: item.notes,
       opened: item.opened
     });
+    // Opening an existing item is not a scan — clear any prior lookup evidence so
+    // the editor doesn't show a stale "read from the label" hint.
+    setProvenance(undefined);
+    setPendingScan(null);
     setEditingItem(item);
     setSheetId(null);
   }
@@ -339,6 +355,107 @@ export default function App() {
     void cancelDeferReminder(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
     setEditingItem(null);
+  }
+
+  function startAddItem() {
+    const def = openShelves.find((sh) => sh.id === defaultShelfId) ?? openShelves[0];
+    setDraft({ ...makeEmptyDraft(), location: def ? def.name : "Storage" });
+    setProvenance(undefined);
+    setPendingScan(null);
+    setIsAddingItem(true);
+  }
+
+  /**
+   * A label was read on the Scan tab. Open the editor prefilled, and hold on to
+   * the guess so `logScan` can compare it against whatever the user actually saves.
+   */
+  function startAddFromLabel(outcome: LookupOutcome) {
+    const def = openShelves.find((sh) => sh.id === defaultShelfId) ?? openShelves[0];
+    const empty = makeEmptyDraft();
+
+    setDraft({
+      ...empty,
+      location: def ? def.name : "Storage",
+      name: outcome.result?.name ?? "",
+      category: outcome.result?.category ?? empty.category,
+      packageSize: outcome.result?.packageSize ?? empty.packageSize,
+      unit: outcome.result?.unit ?? empty.unit
+    });
+    setProvenance({
+      source: outcome.source,
+      confidence: outcome.confidence,
+      candidates: outcome.candidates
+    });
+    setPendingScan({ guess: outcome.result, blocks: outcome.blocks });
+    setIsAddingItem(true);
+    setScreen("shelves");
+
+    if (!outcome.result) {
+      flashToast("Couldn't read that label — fill it in by hand.");
+    }
+  }
+
+  function closeItemEditor() {
+    setEditingItem(null);
+    setIsAddingItem(false);
+    setProvenance(undefined);
+    setPendingScan(null);
+  }
+
+  /**
+   * Records what the reader guessed against what the user kept.
+   *
+   * The gap between the two is the whole reason for running the deterministic
+   * version for a week — see `services/scanLog.ts`.
+   */
+  function logScan(kept: PantryItem) {
+    if (!provenance) return;
+
+    void recordScan({
+      source: provenance.source,
+      barcode: kept.barcode || undefined,
+      blocks: pendingScan?.blocks,
+      guess: pendingScan?.guess ?? {},
+      confidence: provenance.confidence,
+      kept: {
+        name: kept.name,
+        category: kept.category,
+        packageSize: kept.packageSize,
+        unit: kept.unit
+      }
+    });
+  }
+
+  function saveNewItem() {
+    const name = draft.name.trim();
+    const quantity = Number(draft.quantity);
+    if (!name) { Alert.alert("Name required", "Add a name before saving."); return; }
+    if (!Number.isFinite(quantity) || quantity < 0) { Alert.alert("Quantity required", "Use 0 or higher."); return; }
+    if (draft.expiresOn && Number.isNaN(Date.parse(`${draft.expiresOn}T00:00:00`))) {
+      Alert.alert("Check the date", "Use YYYY-MM-DD for expiry dates."); return;
+    }
+    const newItem: PantryItem = {
+      id: `${Date.now()}`,
+      addedOn: today,
+      name,
+      category: draft.category,
+      quantity,
+      unit: draft.unit.trim() || "item",
+      packageSize: draft.packageSize.trim(),
+      location: draft.location.trim() || "Storage",
+      expiresOn: draft.expiresOn.trim(),
+      barcode: draft.barcode.trim(),
+      notes: draft.notes.trim(),
+      opened: draft.opened,
+      par: Math.max(1, quantity),
+      addedBy: "You"
+    };
+    logScan(newItem);
+    setItems((prev) => [newItem, ...prev]);
+    setIsAddingItem(false);
+    setProvenance(undefined);
+    setPendingScan(null);
+    flashToast(`${name} added to ${newItem.location.toLowerCase()}.`);
   }
 
   // ── Run actions ────────────────────────────────────────────────────────
@@ -441,14 +558,18 @@ export default function App() {
       <SafeAreaView style={globalStyles.safeArea}>
         <StatusBar style="light" />
 
-        {!ready ? null : editingItem ? (
+        {!ready ? null : editingItem || isAddingItem ? (
           <ItemEditorScreen
             draft={draft}
-            isEditing
-            onCancel={() => setEditingItem(null)}
+            isEditing={!!editingItem}
+            shelves={shelves}
+            knownItems={items}
+            provenance={provenance}
+            onCancel={closeItemEditor}
             onChangeDraft={setDraft}
-            onRemove={() => removeItem(editingItem.id)}
-            onSave={saveEditedItem}
+            onChangeProvenance={setProvenance}
+            onRemove={editingItem ? () => removeItem(editingItem.id) : undefined}
+            onSave={editingItem ? saveEditedItem : saveNewItem}
           />
         ) : (
           <>
@@ -465,6 +586,7 @@ export default function App() {
                 onOpenItem={(item) => setSheetId(item.id)}
                 onGoExpiring={() => setScreen("expiring")}
                 onGoShelves={() => setScreen("shelves")}
+                onAddItem={startAddItem}
                 onSeeMoreOutOfStock={() => {
                   setFilter("low");
                   setScreen("shelves");
@@ -481,6 +603,7 @@ export default function App() {
                 onCycleFilter={cycleFilter}
                 onGoSearch={() => setScreen("search")}
                 onOpenItem={(item) => setSheetId(item.id)}
+                onAddItem={startAddItem}
               />
             )}
 
@@ -522,22 +645,11 @@ export default function App() {
               <ScanScreen
                 shelves={shelves}
                 defaultShelfId={defaultShelfId}
+                knownItems={items}
                 onClose={() => setScreen(running ? "run" : "list")}
                 onAddToShelf={addFromScan}
-              />
-            )}
-
-            {screen === "settings" && (
-              <SettingsScreen
-                shelves={shelves}
-                defaultShelfId={defaultShelfId}
-                notif={notif}
-                items={items}
-                onBack={() => setScreen("list")}
-                onOpenShelf={openShelfSheet}
-                onAddShelf={addShelf}
-                onMoveShelf={moveShelf}
-                onToggleNotif={toggleNotif}
+                onAddManually={startAddItem}
+                onLabelRead={startAddFromLabel}
               />
             )}
 

@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { GearSix, Moon, UsersThree } from "phosphor-react-native";
+import { GearSix, Moon, Plus, UsersThree } from "phosphor-react-native";
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -23,6 +23,7 @@ type ListScreenProps = {
   onOpenItem: (item: PantryItem) => void;
   onGoExpiring: () => void;
   onGoShelves: () => void;
+  onAddItem: () => void;
   onSeeMoreOutOfStock: () => void;
 };
 
@@ -38,6 +39,7 @@ export function ListScreen({
   onOpenItem,
   onGoExpiring,
   onGoShelves,
+  onAddItem,
   onSeeMoreOutOfStock
 }: ListScreenProps) {
   const buyCount = buyList.length;
@@ -57,6 +59,9 @@ export function ListScreen({
         <View style={s.topRow}>
           <Text style={s.eyebrow}>Home Stock</Text>
           <View style={s.headerIcons}>
+            <Pressable onPress={onAddItem} accessibilityLabel="Add item">
+              <Plus size={17} color={colors.neutral400} weight="regular" />
+            </Pressable>
             <Pressable onPress={onOpenHousehold} accessibilityLabel="Household">
               <UsersThree size={17} color={colors.neutral400} weight="regular" />
             </Pressable>

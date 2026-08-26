@@ -6,20 +6,29 @@ import {
 } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { Minus, Plus, X } from "phosphor-react-native";
-import React, { useMemo, useState } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FadeRule } from "../components/FadeRule";
-import { lookupProductByBarcode } from "../services/productLookup";
+import {
+  lookupProductByBarcode,
+  lookupProductByPhoto,
+  type LookupOutcome
+} from "../services/productLookup";
 import { colors } from "../styles/globalStyles";
-import type { Shelf } from "../types/pantry";
+import type { PantryItem, Shelf } from "../types/pantry";
 import { scanStyles as s } from "./ScanScreen.styles";
 
 type ScanScreenProps = {
   shelves: Shelf[];
   defaultShelfId: string | null;
+  /** Checked before any network call, so a restock of a known item never hits an API. */
+  knownItems: PantryItem[];
   onClose: () => void;
+  onAddManually: () => void;
+  /** Hands a label read back to the app, which opens the editor prefilled. */
+  onLabelRead: (outcome: LookupOutcome) => void;
   onAddToShelf: (input: {
     name: string;
     category: string;
@@ -64,12 +73,22 @@ type FoundState = {
   unit: string;
 };
 
-export function ScanScreen({ shelves, defaultShelfId, onClose, onAddToShelf }: ScanScreenProps) {
+export function ScanScreen({
+  shelves,
+  defaultShelfId,
+  knownItems,
+  onClose,
+  onAddManually,
+  onLabelRead,
+  onAddToShelf
+}: ScanScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<"idle" | "found">("idle");
   const [found, setFound] = useState<FoundState | null>(null);
   const [qty, setQty] = useState(1);
+  const [isReading, setReading] = useState(false);
+  const cameraRef = useRef<CameraView | null>(null);
   const defaultShelfName = useMemo(() => {
     const open = shelves.filter((shelf) => !shelf.hidden);
     const def = open.find((shelf) => shelf.id === defaultShelfId);
@@ -79,19 +98,36 @@ export function ScanScreen({ shelves, defaultShelfId, onClose, onAddToShelf }: S
   const chips = useMemo(() => scanChips(shelves, defaultShelfId, place), [shelves, defaultShelfId, place]);
 
   async function handleScanned(result: BarcodeScanningResult) {
-    if (step !== "idle" || !result.data) return;
+    if (step !== "idle" || isReading || !result.data) return;
     const barcode = result.data;
-    const lookup = await lookupProductByBarcode(barcode);
+    const { result: lookup } = await lookupProductByBarcode(barcode, knownItems);
     setFound({
       barcode,
       name: lookup?.name ?? "",
-      category: lookup?.category ?? "Staples",
+      category: lookup?.category ?? "Other",
       packageSize: lookup?.packageSize ?? "",
       unit: lookup?.unit ?? "items"
     });
     setQty(1);
     setPlace(defaultShelfName);
     setStep("found");
+  }
+
+  /** Photograph the packaging and read it on-device — no barcode needed. */
+  async function readLabel() {
+    if (!cameraRef.current || isReading) return;
+
+    setReading(true);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+      if (!photo?.uri) return;
+
+      onLabelRead(await lookupProductByPhoto(photo.uri, photo.width, photo.height));
+    } catch {
+      onLabelRead({ result: null, source: "ocr", confidence: 0, candidates: [], blocks: [] });
+    } finally {
+      setReading(false);
+    }
   }
 
   function rescan() {
@@ -135,10 +171,11 @@ export function ScanScreen({ shelves, defaultShelfId, onClose, onAddToShelf }: S
   return (
     <View style={s.shell}>
       <CameraView
+        ref={cameraRef}
         style={s.camera}
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: SUPPORTED_BARCODE_TYPES }}
-        onBarcodeScanned={step === "idle" ? handleScanned : undefined}
+        onBarcodeScanned={step === "idle" && !isReading ? handleScanned : undefined}
       />
 
       <View style={s.overlay}>
@@ -167,6 +204,24 @@ export function ScanScreen({ shelves, defaultShelfId, onClose, onAddToShelf }: S
 
             <View style={s.idleHint}>
               <Text style={s.idleHintText}>Tap the frame to scan a barcode</Text>
+            </View>
+
+            <View style={s.fallbackRow}>
+              <Pressable
+                style={[s.readLabelButton, isReading && s.readLabelButtonBusy]}
+                onPress={readLabel}
+                disabled={isReading}
+                accessibilityLabel="Read the label instead"
+              >
+                {isReading ? <ActivityIndicator size="small" color={colors.accent} /> : null}
+                <Text style={s.readLabelText}>
+                  {isReading ? "Reading the label…" : "Read the label instead"}
+                </Text>
+              </Pressable>
+
+              <Pressable style={s.manualEntryLink} onPress={onAddManually}>
+                <Text style={s.manualEntryLinkText}>Type it in by hand</Text>
+              </Pressable>
             </View>
           </>
         ) : null}

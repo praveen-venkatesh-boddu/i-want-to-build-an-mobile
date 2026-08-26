@@ -115,6 +115,46 @@ export const scanStyles = StyleSheet.create({
     fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
   },
 
+  /** Stacked under the idle hint: read the label, or give up and type it. */
+  fallbackRow: {
+    position: "absolute",
+    left: spacing.screenH,
+    right: spacing.screenH,
+    bottom: 14,
+    alignItems: "center",
+    gap: 4
+  },
+  readLabelButton: {
+    alignItems: "center",
+    backgroundColor: "rgba(11,12,20,0.7)",
+    borderColor: colors.accent,
+    borderRadius: radii.round,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 10
+  },
+  readLabelButtonBusy: {
+    opacity: 0.7
+  },
+  readLabelText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500"
+  },
+  manualEntryLink: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    paddingVertical: 8
+  },
+  manualEntryLinkText: {
+    color: colors.neutral300,
+    fontSize: 13,
+    textDecorationLine: "underline"
+  },
+
   foundPanel: {
     position: "absolute",
     left: 0,

@@ -112,5 +112,30 @@ export const barcodeScannerStyles = StyleSheet.create({
     letterSpacing: 0.25,
     marginTop: space.xs,
     textAlign: "center"
+  },
+
+  // ── Read-the-label fallback ───────────────────────────────────────────
+  readLabelButton: {
+    alignItems: "center",
+    alignSelf: "center",
+    borderColor: colors.accent,
+    borderRadius: radii.round,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: space.sm,
+    justifyContent: "center",
+    marginTop: space.lg,
+    minHeight: 40,
+    paddingHorizontal: space.lg,
+    paddingVertical: 10
+  },
+  readLabelButtonBusy: {
+    opacity: 0.7
+  },
+  readLabelText: {
+    color: colors.accent,
+    fontSize: 14,
+    fontFamily: "IBMPlexSans_500Medium", fontWeight: "500",
+    letterSpacing: 0.1
   }
 });

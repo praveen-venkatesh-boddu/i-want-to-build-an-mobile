@@ -1,4 +1,4 @@
-import { Funnel, MagnifyingGlass } from "phosphor-react-native";
+import { Funnel, MagnifyingGlass, Plus } from "phosphor-react-native";
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -17,6 +17,7 @@ type ShelvesScreenProps = {
   onCycleFilter: () => void;
   onGoSearch: () => void;
   onOpenItem: (item: PantryItem) => void;
+  onAddItem: () => void;
 };
 
 const FILTER_LABEL: Record<FilterKey, string> = {
@@ -33,7 +34,8 @@ export function ShelvesScreen({
   filter,
   onCycleFilter,
   onGoSearch,
-  onOpenItem
+  onOpenItem,
+  onAddItem
 }: ShelvesScreenProps) {
   const openShelves = useMemo(() => shelves.filter((shelf) => !shelf.hidden), [shelves]);
 
@@ -80,6 +82,10 @@ export function ShelvesScreen({
           <Text style={[s.filterButtonText, filter !== "all" && s.filterButtonTextActive]}>
             {FILTER_LABEL[filter]}
           </Text>
+        </Pressable>
+
+        <Pressable style={s.addButton} onPress={onAddItem} accessibilityLabel="Add item">
+          <Plus size={16} color={colors.accent} weight="regular" />
         </Pressable>
       </View>
 

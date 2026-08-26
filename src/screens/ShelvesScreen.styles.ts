@@ -67,6 +67,15 @@ export const shelvesStyles = StyleSheet.create({
   filterButtonTextActive: {
     color: colors.accent300
   },
+  addButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    width: 40,
+    height: 40
+  },
 
   list: {
     paddingBottom: 24

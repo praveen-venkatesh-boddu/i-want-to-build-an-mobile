@@ -1,7 +1,10 @@
-import { getDefaultPackageSize, packageTypes } from "../constants/pantry";
-import type { ItemDraft } from "../types/pantry";
+import { categories, getDefaultPackageSize, packageTypes } from "../constants/pantry";
+import type { ExtractionResult, LookupSource, OcrBlock } from "../types/label";
+import type { ItemDraft, PantryItem } from "../types/pantry";
+import { extractProduct } from "./labelExtract";
+import { recognizeLabel } from "./ocr";
 
-type OpenFoodFactsResponse = {
+type OpenFactsResponse = {
   product?: {
     brands?: string;
     categories?: string[];
@@ -22,37 +25,134 @@ type UpcItemDbResponse = {
   }>;
 };
 
-type ProductLookupResult = {
+export type ProductLookupResult = {
   category?: string;
   name?: string;
   packageSize?: string;
   unit?: string;
 };
 
-export async function lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null> {
-  const offResult = await lookupOpenFoodFacts(barcode);
-  if (offResult) return offResult;
-  return lookupUpcItemDb(barcode);
+/** A lookup plus the evidence behind it, so the caller can log it and adapt the UI. */
+export type LookupOutcome = {
+  result: ProductLookupResult | null;
+  source: LookupSource;
+  /** 0–1, only meaningful when `source === "ocr"`. */
+  confidence?: number;
+  /** Alternative names, best first. Rendered as tap-to-fix chips. */
+  candidates?: string[];
+  /** OCR blocks, carried through for the scan log and any future model call. */
+  blocks?: OcrBlock[];
+};
+
+/**
+ * Barcode tiers, cheapest and most reliable first.
+ *
+ * `knownItems` is checked before any network call: someone restocking their usual
+ * dish soap should never hit an API, and after a few weeks of use this becomes the
+ * fastest and most accurate path in the app.
+ */
+export async function lookupProductByBarcode(
+  barcode: string,
+  knownItems: PantryItem[] = []
+): Promise<LookupOutcome> {
+  const remembered = findInHistory(barcode, knownItems);
+  if (remembered) return { result: remembered, source: "history" };
+
+  const food = await lookupOpenFacts(barcode, "https://world.openfoodfacts.org");
+  if (food) return { result: food, source: "off" };
+
+  // OpenFoodFacts is food only, but twelve of this app's eighteen categories are
+  // not food. These siblings share the same API shape and cover the rest.
+  const products = await lookupOpenFacts(barcode, "https://world.openproductsfacts.org");
+  if (products) return { result: products, source: "opf" };
+
+  const beauty = await lookupOpenFacts(barcode, "https://world.openbeautyfacts.org");
+  if (beauty) return { result: beauty, source: "opf" };
+
+  const upc = await lookupUpcItemDb(barcode);
+  if (upc) return { result: upc, source: "opf" };
+
+  return { result: null, source: "none" };
 }
 
-async function lookupOpenFoodFacts(barcode: string): Promise<ProductLookupResult | null> {
+/**
+ * Last tier: read the packaging.
+ *
+ * Runs entirely on-device — no network, no key, no per-scan cost — and works when
+ * the barcode is damaged or the product simply isn't in any database.
+ *
+ * This is where a model would attach later. `extractProduct` already returns the
+ * blocks and a confidence score, so refining a poor read means adding one branch
+ * here and nothing anywhere else:
+ *
+ *     if (extracted.confidence < UNCERTAIN && aiEnabled) {
+ *       return refineWithModel(extracted.blocks);
+ *     }
+ */
+export async function lookupProductByPhoto(
+  imageUri: string,
+  imageWidth: number,
+  imageHeight: number
+): Promise<LookupOutcome> {
+  try {
+    const blocks = await recognizeLabel(imageUri, imageWidth, imageHeight);
+    if (blocks.length === 0) {
+      return { result: null, source: "ocr", confidence: 0, candidates: [], blocks: [] };
+    }
+
+    const extracted: ExtractionResult = extractProduct(blocks);
+
+    return {
+      result: {
+        ...extracted.result,
+        // Keep the extractor's guesses inside the app's own vocabulary.
+        category: coerceCategory(extracted.result.category),
+        unit: coerceUnit(extracted.result.unit)
+      },
+      source: "ocr",
+      confidence: extracted.confidence,
+      candidates: extracted.candidates.map((candidate) => candidate.text),
+      blocks: extracted.blocks
+    };
+  } catch {
+    return { result: null, source: "ocr", confidence: 0, candidates: [], blocks: [] };
+  }
+}
+
+// ── Tier implementations ─────────────────────────────────────────────────────
+
+/** The user's own shelves. Free, instant, and right by definition. */
+function findInHistory(barcode: string, items: PantryItem[]): ProductLookupResult | null {
+  const trimmed = barcode.trim();
+  if (!trimmed) return null;
+
+  const match = items.find((item) => item.barcode && item.barcode.trim() === trimmed);
+  if (!match) return null;
+
+  return {
+    category: match.category,
+    name: match.name,
+    packageSize: match.packageSize,
+    unit: match.unit
+  };
+}
+
+/** OpenFoodFacts and its non-food siblings all speak the same API. */
+async function lookupOpenFacts(barcode: string, origin: string): Promise<ProductLookupResult | null> {
   try {
     const response = await fetch(
-      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(
+      `${origin}/api/v2/product/${encodeURIComponent(
         barcode
       )}.json?fields=product_name,product_name_en,brands,quantity,categories`
     );
     if (!response.ok) return null;
 
-    const payload = (await response.json()) as OpenFoodFactsResponse;
+    const payload = (await response.json()) as OpenFactsResponse;
     if (payload.status !== 1 || !payload.product) return null;
 
     const product = payload.product;
-    const name = [product.product_name_en ?? product.product_name]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-    const category = mapOpenFoodFactsCategory(product.categories ?? []);
+    const name = (product.product_name_en ?? product.product_name ?? "").trim();
+    const category = mapOpenFactsCategory(product.categories ?? []);
     const unit = inferPackageType(product.quantity ?? "");
 
     return {
@@ -77,10 +177,7 @@ async function lookupUpcItemDb(barcode: string): Promise<ProductLookupResult | n
     const item = payload.items?.[0];
     if (!item) return null;
 
-    const rawName = [item.brand, item.title]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
+    const rawName = [item.brand, item.title].filter(Boolean).join(" ").trim();
     // Remove brand prefix duplication (e.g. "Tide Tide Pods" → "Tide Pods")
     const name = deduplicatePrefix(rawName);
 
@@ -110,10 +207,10 @@ export function applyLookupResultToDraft(
   return {
     ...current,
     barcode,
-    category: lookupResult.category ?? current.category,
+    category: coerceCategory(lookupResult.category) ?? current.category,
     name: lookupResult.name ?? current.name,
     packageSize: lookupResult.packageSize ?? current.packageSize,
-    unit: lookupResult.unit ?? current.unit
+    unit: coerceUnit(lookupResult.unit) ?? current.unit
   };
 }
 
@@ -135,7 +232,27 @@ function inferPackageType(quantity: string) {
   return hasKnownMeasure ? "items" : packageTypes[packageTypes.length - 1]?.value;
 }
 
-function mapOpenFoodFactsCategory(categoryTags: string[]) {
+/**
+ * Guards against a category the editor cannot render.
+ *
+ * The chips are built from `constants/pantry.ts` → `categories`, so a value
+ * outside that list lights *no* chip and the user cannot tell why. Every tier
+ * goes through here.
+ */
+function coerceCategory(category: string | undefined): string | undefined {
+  if (!category) return undefined;
+  const match = categories.find((known) => known.toLowerCase() === category.toLowerCase());
+  return match ?? "Other";
+}
+
+/** The same guard for package type, against `packageTypes`. */
+function coerceUnit(unit: string | undefined): string | undefined {
+  if (!unit) return undefined;
+  const match = packageTypes.find((known) => known.value.toLowerCase() === unit.toLowerCase());
+  return match?.value ?? "items";
+}
+
+function mapOpenFactsCategory(categoryTags: string[]) {
   const normalizedTags = categoryTags.join(" ").toLowerCase();
 
   if (matchesAny(normalizedTags, ["spice", "herb", "seasoning", "sauce", "condiment"])) return "Spices";
@@ -143,21 +260,42 @@ function mapOpenFoodFactsCategory(categoryTags: string[]) {
   if (matchesAny(normalizedTags, ["frozen"])) return "Frozen";
   if (matchesAny(normalizedTags, ["snack", "chips", "crackers", "cookies", "confectionery"])) return "Snacks";
   if (matchesAny(normalizedTags, ["canned", "tin", "preserved-foods"])) return "Cans";
-  return "Staples";
+  if (matchesAny(normalizedTags, ["beauty", "hygiene", "toiletr", "hair", "dental"])) return "Toiletries";
+  if (matchesAny(normalizedTags, ["laundry"])) return "Laundry";
+  if (matchesAny(normalizedTags, ["cleaning", "detergent", "household"])) return "Cleaning";
+  if (matchesAny(normalizedTags, ["paper", "tissue"])) return "Paper Goods";
+  if (matchesAny(normalizedTags, ["pet", "cat-", "dog-"])) return "Pet Supplies";
+  if (matchesAny(normalizedTags, ["baby", "infant"])) return "Baby Supplies";
+  if (matchesAny(normalizedTags, ["batter"])) return "Batteries";
+  if (matchesAny(normalizedTags, ["beverage", "cereal", "pasta", "rice", "grocer"])) return "Staples";
+
+  return "Other";
 }
 
 function mapUpcItemDbCategory(category: string) {
   const c = category.toLowerCase();
 
-  if (matchesAny(c, ["food", "grocery", "beverage", "drink"])) return "Staples";
+  // Every branch must return a value present in `categories`. "Dairy", "Meat" and
+  // "Household" are not in that list and previously left the editor with no chip lit.
   if (matchesAny(c, ["frozen"])) return "Frozen";
   if (matchesAny(c, ["snack", "candy", "confection", "chip", "cookie"])) return "Snacks";
   if (matchesAny(c, ["spice", "herb", "sauce", "condiment", "seasoning"])) return "Spices";
-  if (matchesAny(c, ["produce", "fruit", "vegetable"])) return "Produce";
-  if (matchesAny(c, ["dairy", "egg", "cheese", "milk", "yogurt"])) return "Dairy";
-  if (matchesAny(c, ["meat", "poultry", "seafood", "fish"])) return "Meat";
-  if (matchesAny(c, ["health", "beauty", "personal care", "cleaning", "household", "paper"])) return "Household";
-  return "Staples";
+  if (matchesAny(c, ["produce", "fruit", "vegetable", "dairy", "egg", "cheese", "milk", "yogurt", "meat", "poultry", "seafood", "fish"])) {
+    return "Produce";
+  }
+  if (matchesAny(c, ["laundry"])) return "Laundry";
+  if (matchesAny(c, ["cleaning", "cleaner", "detergent"])) return "Cleaning";
+  if (matchesAny(c, ["paper", "tissue", "towel"])) return "Paper Goods";
+  if (matchesAny(c, ["health", "beauty", "personal care", "hygiene"])) return "Toiletries";
+  if (matchesAny(c, ["pet"])) return "Pet Supplies";
+  if (matchesAny(c, ["baby", "infant"])) return "Baby Supplies";
+  if (matchesAny(c, ["batter"])) return "Batteries";
+  if (matchesAny(c, ["office", "stationer"])) return "Office Supplies";
+  if (matchesAny(c, ["hardware", "tool"])) return "Hardware";
+  if (matchesAny(c, ["food", "grocery", "beverage", "drink"])) return "Staples";
+
+  // Not "Staples" — a bottle of bleach is not a staple.
+  return "Other";
 }
 
 function deduplicatePrefix(text: string): string {
