@@ -653,6 +653,20 @@ export default function App() {
               />
             )}
 
+            {screen === "settings" && (
+              <SettingsScreen
+                shelves={shelves}
+                defaultShelfId={defaultShelfId}
+                notif={notif}
+                items={items}
+                onBack={() => setScreen("list")}
+                onOpenShelf={openShelfSheet}
+                onAddShelf={addShelf}
+                onMoveShelf={moveShelf}
+                onToggleNotif={toggleNotif}
+              />
+            )}
+
             {showNavBar && <BottomNavBar screen={screen} onSelectScreen={setScreen} />}
 
             <ItemSheet

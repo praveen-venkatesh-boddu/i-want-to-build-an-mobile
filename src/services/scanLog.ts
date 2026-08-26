@@ -16,7 +16,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
 import type { ExtractionResult, LookupSource, OcrBlock, ScanLogEntry } from "../types/label";
@@ -124,15 +124,14 @@ export async function exportScanLog(): Promise<ExportOutcome> {
 
   try {
     const stamp = new Date().toISOString().slice(0, 10);
-    const path = `${FileSystem.cacheDirectory}scan-log-${stamp}.json`;
-
-    await FileSystem.writeAsStringAsync(path, toExportJson(entries));
+    const file = new File(Paths.cache, `scan-log-${stamp}.json`);
+    file.write(toExportJson(entries));
 
     if (!(await Sharing.isAvailableAsync())) {
       return { ok: false, reason: "Sharing isn't available on this device." };
     }
 
-    await Sharing.shareAsync(path, {
+    await Sharing.shareAsync(file.uri, {
       mimeType: "application/json",
       dialogTitle: "Export scan log"
     });
