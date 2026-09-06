@@ -63,7 +63,7 @@ export const barcodeScannerStyles = StyleSheet.create({
     backgroundColor: "#000000"
   },
   camera: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   overlay: {
     flex: 1,

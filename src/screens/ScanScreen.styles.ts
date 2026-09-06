@@ -10,10 +10,10 @@ export const scanStyles = StyleSheet.create({
     backgroundColor: "#000"
   },
   camera: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
 
   topBar: {
