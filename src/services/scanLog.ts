@@ -16,7 +16,10 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { File, Paths } from "expo-file-system";
+// The "legacy" entry point is the long-stable functional API. The newer
+// class-based `File`/`Paths` API is recent enough that some bundlers (Snack's
+// included) fail to resolve it even on a matching SDK version.
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 import type { ExtractionResult, LookupSource, OcrBlock, ScanLogEntry } from "../types/label";
@@ -124,14 +127,14 @@ export async function exportScanLog(): Promise<ExportOutcome> {
 
   try {
     const stamp = new Date().toISOString().slice(0, 10);
-    const file = new File(Paths.cache, `scan-log-${stamp}.json`);
-    file.write(toExportJson(entries));
+    const fileUri = `${FileSystem.cacheDirectory}scan-log-${stamp}.json`;
+    await FileSystem.writeAsStringAsync(fileUri, toExportJson(entries));
 
     if (!(await Sharing.isAvailableAsync())) {
       return { ok: false, reason: "Sharing isn't available on this device." };
     }
 
-    await Sharing.shareAsync(file.uri, {
+    await Sharing.shareAsync(fileUri, {
       mimeType: "application/json",
       dialogTitle: "Export scan log"
     });

@@ -10,9 +10,28 @@
  *     npx expo prebuild
  */
 
-import TextRecognition from "@react-native-ml-kit/text-recognition";
-
 import type { OcrBlock } from "../types/label";
+
+type TextRecognitionModule = {
+  recognize: (imageUri: string) => Promise<{ blocks?: LooseBlock[] }>;
+};
+
+// A static `import` here evaluates the native binding immediately, which throws
+// (and takes the whole app down with it, since this loads before any screen is on
+// screen) whenever the ML Kit binary isn't linked — e.g. in Expo Go. Loading it
+// lazily behind a try/catch confines the failure to `recognizeLabel` below.
+let textRecognition: TextRecognitionModule | null | undefined;
+
+function getTextRecognition(): TextRecognitionModule | null {
+  if (textRecognition === undefined) {
+    try {
+      textRecognition = require("@react-native-ml-kit/text-recognition").default as TextRecognitionModule;
+    } catch {
+      textRecognition = null;
+    }
+  }
+  return textRecognition;
+}
 
 /**
  * ML Kit wrappers disagree about how a bounding box is spelled. Some emit
@@ -48,7 +67,12 @@ export async function recognizeLabel(
   imageWidth: number,
   imageHeight: number
 ): Promise<OcrBlock[]> {
-  const recognised = await TextRecognition.recognize(imageUri);
+  const textRecognition = getTextRecognition();
+  if (!textRecognition) {
+    throw new Error("Label reading requires a dev build — ML Kit is not available in Expo Go.");
+  }
+
+  const recognised = await textRecognition.recognize(imageUri);
   const blocks = (recognised?.blocks ?? []) as LooseBlock[];
 
   const safeWidth = imageWidth > 0 ? imageWidth : 1;
