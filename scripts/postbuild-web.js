@@ -2,6 +2,26 @@
 const fs = require("fs");
 const path = require("path");
 
+// Cloudflare Pages silently drops any folder named node_modules, and Expo puts the
+// bundled fonts in dist/assets/node_modules. Rename it and fix every reference.
+const assets = path.join(__dirname, "..", "dist", "assets");
+const from = path.join(assets, "node_modules");
+if (fs.existsSync(from)) {
+  fs.renameSync(from, path.join(assets, "vendor"));
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+  let n = 0;
+  for (const f of walk(path.join(__dirname, "..", "dist"))) {
+    if (!/\.(js|html|css|json)$/.test(f)) continue;
+    const t = fs.readFileSync(f, "utf8");
+    if (t.includes("assets/node_modules/")) {
+      fs.writeFileSync(f, t.split("assets/node_modules/").join("assets/vendor/"));
+      n++;
+    }
+  }
+  console.log("Renamed assets/node_modules -> assets/vendor, rewrote " + n + " file(s)");
+}
+
 const file = path.join(__dirname, "..", "dist", "index.html");
 let html = fs.readFileSync(file, "utf8");
 

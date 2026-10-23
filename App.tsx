@@ -37,7 +37,7 @@ import type { FilterKey, ItemDraft, NotifSettings, PantryItem, Screen, Shelf } f
 import type { OcrBlock } from "./src/types/label";
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceGrotesk_300Light,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
@@ -550,7 +550,7 @@ export default function App() {
     setFilter(filters[(idx + 1) % filters.length].key);
   }
 
-  const ready = fontsLoaded && hasLoaded && basketLoaded && shelvesLoaded && settingsLoaded;
+  const ready = (fontsLoaded || !!fontError) && hasLoaded && basketLoaded && shelvesLoaded && settingsLoaded;
   const showNavBar = screen !== "run" && screen !== "scan" && screen !== "settings";
 
   return (
