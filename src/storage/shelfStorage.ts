@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kv } from "./kv";
 
 import type { NotifSettings, Shelf } from "../types/pantry";
 
@@ -11,19 +11,19 @@ export type StoredSettings = {
 };
 
 export async function loadShelves(): Promise<Shelf[] | null> {
-  const stored = await AsyncStorage.getItem(SHELVES_STORAGE_KEY);
+  const stored = await kv.getItem(SHELVES_STORAGE_KEY);
   return stored ? (JSON.parse(stored) as Shelf[]) : null;
 }
 
 export function saveShelves(shelves: Shelf[]) {
-  return AsyncStorage.setItem(SHELVES_STORAGE_KEY, JSON.stringify(shelves));
+  return kv.setItem(SHELVES_STORAGE_KEY, JSON.stringify(shelves));
 }
 
 export async function loadSettings(): Promise<StoredSettings | null> {
-  const stored = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
+  const stored = await kv.getItem(SETTINGS_STORAGE_KEY);
   return stored ? (JSON.parse(stored) as StoredSettings) : null;
 }
 
 export function saveSettings(settings: StoredSettings) {
-  return AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  return kv.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 }

@@ -21,6 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // included) fail to resolve it even on a matching SDK version.
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import { Platform } from "react-native";
 
 import type { ExtractionResult, LookupSource, OcrBlock, ScanLogEntry } from "../types/label";
 
@@ -127,6 +128,19 @@ export async function exportScanLog(): Promise<ExportOutcome> {
 
   try {
     const stamp = new Date().toISOString().slice(0, 10);
+
+    if (Platform.OS === "web") {
+      // No file system / share sheet in the browser: download the JSON instead.
+      const blob = new Blob([toExportJson(entries)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `scan-log-${stamp}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return { ok: true, count: entries.length };
+    }
+
     const fileUri = `${FileSystem.cacheDirectory}scan-log-${stamp}.json`;
     await FileSystem.writeAsStringAsync(fileUri, toExportJson(entries));
 
