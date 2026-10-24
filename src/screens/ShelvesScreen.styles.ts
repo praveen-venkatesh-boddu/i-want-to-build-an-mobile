@@ -86,8 +86,8 @@ export const shelvesStyles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingHorizontal: spacing.screenH,
-    paddingBottom: 10,
-    marginTop: 22
+    paddingVertical: 10,
+    marginTop: 12
   },
   groupHeaderFirst: {
     marginTop: 0
@@ -101,6 +101,24 @@ export const shelvesStyles = StyleSheet.create({
   },
   groupRule: {
     flex: 1
+  },
+  groupBadge: {
+    color: colors.neutral500,
+    fontSize: 11
+  },
+  groupBadgeAccent: {
+    color: colors.accent300,
+    fontSize: 11
+  },
+  toggleAllRow: {
+    alignItems: "flex-end",
+    paddingHorizontal: spacing.screenH,
+    paddingTop: 10,
+    paddingBottom: 12
+  },
+  toggleAllText: {
+    color: colors.accent300,
+    fontSize: 12
   },
   groupCount: {
     color: colors.neutral500,

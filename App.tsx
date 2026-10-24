@@ -22,6 +22,7 @@ import {
 import { ExpiringScreen } from "./src/screens/ExpiringScreen";
 import { ItemEditorScreen, type NameProvenance } from "./src/screens/ItemEditorScreen";
 import { ListScreen } from "./src/screens/ListScreen";
+import { MatchBarcodesScreen, type BarcodeLink } from "./src/screens/MatchBarcodesScreen";
 import { RunScreen } from "./src/screens/RunScreen";
 import { ScanScreen } from "./src/screens/ScanScreen";
 import { SearchScreen } from "./src/screens/SearchScreen";
@@ -59,6 +60,7 @@ export default function App() {
   const [shelfDraft, setShelfDraft] = useState<Shelf | null>(null);
 
   const [screen, setScreen] = useState<Screen>("list");
+  const [lastLinks, setLastLinks] = useState<BarcodeLink[]>([]);
   const [running, setRunning] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -365,36 +367,6 @@ export default function App() {
     setIsAddingItem(true);
   }
 
-  /**
-   * A label was read on the Scan tab. Open the editor prefilled, and hold on to
-   * the guess so `logScan` can compare it against whatever the user actually saves.
-   */
-  function startAddFromLabel(outcome: LookupOutcome) {
-    const def = openShelves.find((sh) => sh.id === defaultShelfId) ?? openShelves[0];
-    const empty = makeEmptyDraft();
-
-    setDraft({
-      ...empty,
-      location: def ? def.name : "Storage",
-      name: outcome.result?.name ?? "",
-      category: outcome.result?.category ?? empty.category,
-      packageSize: outcome.result?.packageSize ?? empty.packageSize,
-      unit: outcome.result?.unit ?? empty.unit
-    });
-    setProvenance({
-      source: outcome.source,
-      confidence: outcome.confidence,
-      candidates: outcome.candidates
-    });
-    setPendingScan({ guess: outcome.result, blocks: outcome.blocks });
-    setIsAddingItem(true);
-    setScreen("shelves");
-
-    if (!outcome.result) {
-      flashToast("Couldn't read that label — fill it in by hand.");
-    }
-  }
-
   function closeItemEditor() {
     setEditingItem(null);
     setIsAddingItem(false);
@@ -511,11 +483,25 @@ export default function App() {
     quantity: number;
   }) {
     const incomingKey = input.name.trim().toLowerCase();
+    const incomingBarcode = input.barcode.trim();
     setItems((prev) => {
-      const existing = prev.find((i) => i.name.trim().toLowerCase() === incomingKey);
+      // 1. The barcode is the strongest identity: if we already track it, restock that item
+      //    even when it has been renamed since.
+      // 2. Otherwise fall back to the name, but only onto an item with no barcode yet. An item
+      //    that carries a different barcode is a different product that happens to share a name.
+      const existing =
+        (incomingBarcode ? prev.find((i) => i.barcode.trim() === incomingBarcode) : undefined) ??
+        prev.find((i) => i.name.trim().toLowerCase() === incomingKey && !i.barcode.trim());
       if (existing) {
         return prev.map((i) =>
-          i.id === existing.id ? { ...i, quantity: i.quantity + input.quantity } : i
+          i.id === existing.id
+            ? {
+                ...i,
+                quantity: i.quantity + input.quantity,
+                // Link the barcode the first time, so the next scan matches this item directly.
+                barcode: i.barcode.trim() ? i.barcode : incomingBarcode
+              }
+            : i
         );
       }
       const newItem: PantryItem = {
@@ -540,6 +526,38 @@ export default function App() {
     flashToast(`${input.name} added to ${input.location.toLowerCase()}.`);
   }
 
+  // ── Barcode matching ───────────────────────────────────────────────────
+  /** Links accepted on the Match barcodes screen: only fills an empty barcode, never overwrites one. */
+  function applyBarcodeLinks(links: BarcodeLink[]) {
+    // Decide once, from the current items, which links are still valid.
+    const taken = new Set(items.map((item) => item.barcode.trim()).filter(Boolean));
+    const accepted: BarcodeLink[] = [];
+    for (const link of links) {
+      const target = items.find((item) => item.id === link.id);
+      if (target && !target.barcode.trim() && !taken.has(link.barcode)) {
+        taken.add(link.barcode);
+        accepted.push(link);
+      }
+    }
+
+    const byId = new Map(accepted.map((link) => [link.id, link.barcode]));
+    setItems((prev) => prev.map((item) => (byId.has(item.id) ? { ...item, barcode: byId.get(item.id)! } : item)));
+    setLastLinks(accepted);
+    flashToast(
+      accepted.length === 0
+        ? "Nothing linked."
+        : `Linked ${accepted.length} ${accepted.length === 1 ? "barcode" : "barcodes"}.`
+    );
+  }
+
+  function undoBarcodeLinks() {
+    const byId = new Map(lastLinks.map((link) => [link.id, link.barcode]));
+    // Only clear a barcode that is still the one we set, in case it was edited since.
+    setItems((prev) => prev.map((item) => (byId.get(item.id) === item.barcode ? { ...item, barcode: "" } : item)));
+    flashToast(`Undid ${lastLinks.length} ${lastLinks.length === 1 ? "link" : "links"}.`);
+    setLastLinks([]);
+  }
+
   // ── Misc ───────────────────────────────────────────────────────────────
   function flashToast(message: string) {
     setToast(message);
@@ -551,7 +569,8 @@ export default function App() {
   }
 
   const ready = (fontsLoaded || !!fontError) && hasLoaded && basketLoaded && shelvesLoaded && settingsLoaded;
-  const showNavBar = screen !== "run" && screen !== "scan" && screen !== "settings";
+  const showNavBar =
+    screen !== "run" && screen !== "scan" && screen !== "settings" && screen !== "matchBarcodes";
 
   return (
     <SafeAreaProvider>
@@ -649,7 +668,6 @@ export default function App() {
                 onClose={() => setScreen(running ? "run" : "list")}
                 onAddToShelf={addFromScan}
                 onAddManually={startAddItem}
-                onLabelRead={startAddFromLabel}
               />
             )}
 
@@ -664,6 +682,17 @@ export default function App() {
                 onAddShelf={addShelf}
                 onMoveShelf={moveShelf}
                 onToggleNotif={toggleNotif}
+                onMatchBarcodes={() => setScreen("matchBarcodes")}
+              />
+            )}
+
+            {screen === "matchBarcodes" && (
+              <MatchBarcodesScreen
+                items={items}
+                undoCount={lastLinks.length}
+                onBack={() => setScreen("settings")}
+                onApply={applyBarcodeLinks}
+                onUndo={undoBarcodeLinks}
               />
             )}
 

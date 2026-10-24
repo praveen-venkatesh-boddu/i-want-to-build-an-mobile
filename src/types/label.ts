@@ -50,7 +50,7 @@ export type ExtractionResult = {
 };
 
 /** Which tier answered. Recorded on every scan so the log can be sliced by source. */
-export type LookupSource = "history" | "off" | "opf" | "ocr" | "none";
+export type LookupSource = "history" | "catalog" | "off" | "opf" | "ocr" | "none";
 
 /** One recorded scan. The gap between `guess` and `kept` is the whole point. */
 export type ScanLogEntry = {

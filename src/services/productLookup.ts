@@ -3,6 +3,7 @@ import type { ExtractionResult, LookupSource, OcrBlock } from "../types/label";
 import type { ItemDraft, PantryItem } from "../types/pantry";
 import { extractProduct } from "./labelExtract";
 import { recognizeLabel } from "./ocr";
+import { findInSwadCatalog } from "./swadCatalog";
 
 type OpenFactsResponse = {
   product?: {
@@ -57,6 +58,10 @@ export async function lookupProductByBarcode(
 ): Promise<LookupOutcome> {
   const remembered = findInHistory(barcode, knownItems);
   if (remembered) return { result: remembered, source: "history" };
+
+  // Bundled catalog of Swad products: offline and instant, so it goes before any network call.
+  const swad = findInSwadCatalog(barcode);
+  if (swad) return { result: swad, source: "catalog" };
 
   const food = await lookupOpenFacts(barcode, "https://world.openfoodfacts.org");
   if (food) return { result: food, source: "off" };

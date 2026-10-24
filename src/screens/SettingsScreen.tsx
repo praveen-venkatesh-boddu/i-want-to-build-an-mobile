@@ -1,4 +1,4 @@
-import { ArrowLeft, CaretDown, CaretUp, EyeSlash, Plus } from "phosphor-react-native";
+import { ArrowLeft, CaretDown, CaretRight, CaretUp, EyeSlash, Plus } from "phosphor-react-native";
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -18,6 +18,7 @@ type SettingsScreenProps = {
   onAddShelf: () => void;
   onMoveShelf: (id: string, direction: number) => void;
   onToggleNotif: (key: keyof NotifSettings) => void;
+  onMatchBarcodes: () => void;
 };
 
 const NOTIF_ROWS: Array<{ key: keyof NotifSettings; name: string; meta: string }> = [
@@ -34,7 +35,8 @@ export function SettingsScreen({
   onOpenShelf,
   onAddShelf,
   onMoveShelf,
-  onToggleNotif
+  onToggleNotif,
+  onMatchBarcodes
 }: SettingsScreenProps) {
   const hiddenCount = useMemo(() => shelves.filter((shelf) => shelf.hidden).length, [shelves]);
   const countByName = useMemo(() => {
@@ -42,6 +44,7 @@ export function SettingsScreen({
     items.forEach((item) => map.set(item.location, (map.get(item.location) ?? 0) + 1));
     return map;
   }, [items]);
+  const noBarcodeCount = useMemo(() => items.filter((item) => !item.barcode.trim()).length, [items]);
   const defaultShelfName = shelves.find((shelf) => shelf.id === defaultShelfId)?.name.toLowerCase() ?? "no shelf";
 
   return (
@@ -139,6 +142,23 @@ export function SettingsScreen({
             </Pressable>
           );
         })}
+
+        <View style={[s.sectionHeader, s.sectionHeaderTopped]}>
+          <Text style={s.sectionLabel}>Barcodes</Text>
+          <View style={s.sectionRule} />
+        </View>
+
+        <Pressable style={s.notifRow} onPress={onMatchBarcodes} accessibilityRole="button">
+          <View style={s.notifBody}>
+            <Text style={s.notifName}>Match barcodes</Text>
+            <Text style={s.notifMeta}>
+              {noBarcodeCount === 0
+                ? "Every item has a barcode."
+                : `${noBarcodeCount} ${noBarcodeCount === 1 ? "item has" : "items have"} none. Link the ones in the catalog.`}
+            </Text>
+          </View>
+          <CaretRight size={15} color={colors.neutral500} weight="bold" />
+        </Pressable>
 
         <SyncPasscode />
 

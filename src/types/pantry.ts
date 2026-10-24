@@ -24,7 +24,7 @@ export type ItemDraft = Omit<PantryItem, "id" | "quantity" | "opened"> & {
 
 export type FilterKey = "all" | "expiring" | "low" | "opened";
 
-export type Screen = "list" | "run" | "shelves" | "expiring" | "search" | "scan" | "settings";
+export type Screen = "list" | "run" | "shelves" | "expiring" | "search" | "scan" | "settings" | "matchBarcodes";
 
 export type PantryStats = {
   total: number;

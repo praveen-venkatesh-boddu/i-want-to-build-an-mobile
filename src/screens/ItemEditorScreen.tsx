@@ -21,7 +21,7 @@ import {
 import { colors } from "../styles/globalStyles";
 import type { ItemDraft, PantryItem, Shelf } from "../types/pantry";
 import { addDaysToISO, addMonthsToISO, formatShortDate } from "../utils/date";
-import { BarcodeScannerScreen } from "./BarcodeScannerScreen";
+import { ScanScreen } from "./ScanScreen";
 import { itemEditorStyles as styles } from "./ItemEditorScreen.styles";
 
 /** How the draft's name got there — drives the hint and chips under the name field. */
@@ -108,27 +108,29 @@ export function ItemEditorScreen({
     }
   }
 
-  function handleBarcodeScanned(barcode: string) {
+  /** The shared scanner found a product — copy it into the form instead of saving it straight away. */
+  function handleScanConfirmed(input: {
+    name: string;
+    category: string;
+    packageSize: string;
+    unit: string;
+    barcode: string;
+    location: string;
+    quantity: number;
+  }) {
     setScannerOpen(false);
-    void lookupBarcode(barcode);
-  }
-
-  /** The label was read instead of the barcode — fill what we got, keep the evidence. */
-  function handleLabelRead(outcome: LookupOutcome) {
-    setScannerOpen(false);
-
-    if (!outcome.result) {
-      setScanMessage("Couldn't read that label. Try again in better light, or type it in.");
-      return;
-    }
-
-    onChangeDraft((current) => applyLookupResultToDraft(current, current.barcode, outcome.result));
-    onChangeProvenance?.({
-      source: outcome.source,
-      confidence: outcome.confidence,
-      candidates: outcome.candidates
-    });
-    setScanMessage("");
+    onChangeDraft((current) => ({
+      ...current,
+      name: input.name,
+      category: input.category || current.category,
+      packageSize: input.packageSize,
+      unit: input.unit || current.unit,
+      barcode: input.barcode,
+      location: input.location || current.location,
+      quantity: String(input.quantity)
+    }));
+    onChangeProvenance?.(undefined);
+    setScanMessage("Scanned. Review the item, then save.");
   }
 
   /** Tapping a runner-up chip. Once corrected, the guess is no longer a guess. */
@@ -498,11 +500,16 @@ export function ItemEditorScreen({
         </View>
       </KeyboardAvoidingView>
 
-      <Modal animationType="slide" visible={isScannerOpen} presentationStyle="fullScreen">
-        <BarcodeScannerScreen
-          onCancel={() => setScannerOpen(false)}
-          onScanned={handleBarcodeScanned}
-          onLabelRead={handleLabelRead}
+      <Modal animationType="slide" visible={isScannerOpen} presentationStyle="fullScreen" onRequestClose={() => setScannerOpen(false)}>
+        {/* The same scanner as the home-screen Scan tab, so both entry points feel identical. */}
+        <ScanScreen
+          shelves={shelves}
+          defaultShelfId={shelves.find((shelf) => shelf.name === draft.location)?.id ?? null}
+          knownItems={knownItems}
+          confirmLabel="Use this item"
+          onClose={() => setScannerOpen(false)}
+          onAddManually={() => setScannerOpen(false)}
+          onAddToShelf={handleScanConfirmed}
         />
       </Modal>
     </View>

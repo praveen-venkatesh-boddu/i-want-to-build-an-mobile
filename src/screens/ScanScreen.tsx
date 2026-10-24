@@ -6,16 +6,12 @@ import {
 } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { Minus, Plus, X } from "phosphor-react-native";
-import React, { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FadeRule } from "../components/FadeRule";
-import {
-  lookupProductByBarcode,
-  lookupProductByPhoto,
-  type LookupOutcome
-} from "../services/productLookup";
+import { lookupProductByBarcode } from "../services/productLookup";
 import { colors } from "../styles/globalStyles";
 import type { PantryItem, Shelf } from "../types/pantry";
 import { scanStyles as s } from "./ScanScreen.styles";
@@ -27,8 +23,8 @@ type ScanScreenProps = {
   knownItems: PantryItem[];
   onClose: () => void;
   onAddManually: () => void;
-  /** Hands a label read back to the app, which opens the editor prefilled. */
-  onLabelRead: (outcome: LookupOutcome) => void;
+  /** Label for the confirm button on the found panel. The editor uses "Use this item". */
+  confirmLabel?: string;
   onAddToShelf: (input: {
     name: string;
     category: string;
@@ -79,7 +75,7 @@ export function ScanScreen({
   knownItems,
   onClose,
   onAddManually,
-  onLabelRead,
+  confirmLabel = "Add to shelf",
   onAddToShelf
 }: ScanScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -87,8 +83,6 @@ export function ScanScreen({
   const [step, setStep] = useState<"idle" | "found">("idle");
   const [found, setFound] = useState<FoundState | null>(null);
   const [qty, setQty] = useState(1);
-  const [isReading, setReading] = useState(false);
-  const cameraRef = useRef<CameraView | null>(null);
   const defaultShelfName = useMemo(() => {
     const open = shelves.filter((shelf) => !shelf.hidden);
     const def = open.find((shelf) => shelf.id === defaultShelfId);
@@ -98,7 +92,7 @@ export function ScanScreen({
   const chips = useMemo(() => scanChips(shelves, defaultShelfId, place), [shelves, defaultShelfId, place]);
 
   async function handleScanned(result: BarcodeScanningResult) {
-    if (step !== "idle" || isReading || !result.data) return;
+    if (step !== "idle" || !result.data) return;
     const barcode = result.data;
     const { result: lookup } = await lookupProductByBarcode(barcode, knownItems);
     setFound({
@@ -111,23 +105,6 @@ export function ScanScreen({
     setQty(1);
     setPlace(defaultShelfName);
     setStep("found");
-  }
-
-  /** Photograph the packaging and read it on-device — no barcode needed. */
-  async function readLabel() {
-    if (!cameraRef.current || isReading) return;
-
-    setReading(true);
-    try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
-      if (!photo?.uri) return;
-
-      onLabelRead(await lookupProductByPhoto(photo.uri, photo.width, photo.height));
-    } catch {
-      onLabelRead({ result: null, source: "ocr", confidence: 0, candidates: [], blocks: [] });
-    } finally {
-      setReading(false);
-    }
   }
 
   function rescan() {
@@ -171,11 +148,10 @@ export function ScanScreen({
   return (
     <View style={s.shell}>
       <CameraView
-        ref={cameraRef}
         style={s.camera}
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: SUPPORTED_BARCODE_TYPES }}
-        onBarcodeScanned={step === "idle" && !isReading ? handleScanned : undefined}
+        onBarcodeScanned={step === "idle" ? handleScanned : undefined}
       />
 
       <View style={s.overlay}>
@@ -208,18 +184,6 @@ export function ScanScreen({
             </View>
 
             <View style={s.fallbackRow}>
-              <Pressable
-                style={[s.readLabelButton, isReading && s.readLabelButtonBusy]}
-                onPress={readLabel}
-                disabled={isReading}
-                accessibilityLabel="Read the label instead"
-              >
-                {isReading ? <ActivityIndicator size="small" color={colors.accent} /> : null}
-                <Text style={s.readLabelText}>
-                  {isReading ? "Reading the label…" : "Read the label instead"}
-                </Text>
-              </Pressable>
-
               <Pressable style={s.manualEntryLink} onPress={onAddManually}>
                 <Text style={s.manualEntryLinkText}>Type it in by hand</Text>
               </Pressable>
@@ -285,7 +249,7 @@ export function ScanScreen({
 
             <View style={s.actionsRow}>
               <Pressable style={s.addButton} onPress={addToShelf}>
-                <Text style={s.addButtonText}>Add to shelf</Text>
+                <Text style={s.addButtonText}>{confirmLabel}</Text>
               </Pressable>
               <Pressable style={s.rescanButton} onPress={rescan}>
                 <Text style={s.rescanButtonText}>Rescan</Text>
