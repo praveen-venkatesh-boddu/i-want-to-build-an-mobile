@@ -1,9 +1,11 @@
 // Cloudflare Pages Function: tiny key/value store on D1 for the synced app state.
 // GET /api/kv/:key -> 200 { value, updatedAt } | 404
 // PUT /api/kv/:key  body { value } -> 200
-// Protect the whole site with Cloudflare Access; this refuses requests that did not come through it.
+// Auth: send header "x-pantry-key" equal to the PANTRY_KEY secret (Pages > Settings > Variables and Secrets).
+// Requests that came through Cloudflare Access are also accepted. With neither, everything is refused.
 
 const ALLOWED = new Set([
+  "_check",
   "pantry-pocket-items",
   "pantry-pocket-basket",
   "pantry-pocket-shelves",
@@ -18,10 +20,13 @@ const json = (body, status = 200) =>
   });
 
 export async function onRequest({ request, env, params }) {
-  // Fail closed: Access adds this header to every request it lets through.
-  if (env.ALLOW_NO_ACCESS !== "1" && !request.headers.get("Cf-Access-Jwt-Assertion")) {
-    return json({ error: "Protect this site with Cloudflare Access." }, 401);
+  // Fail closed: need the secret passcode, or a request that Cloudflare Access let through.
+  const viaAccess = !!request.headers.get("Cf-Access-Jwt-Assertion");
+  const sent = request.headers.get("x-pantry-key") || "";
+  if (!viaAccess && !(env.PANTRY_KEY && safeEqual(sent, env.PANTRY_KEY))) {
+    return json({ error: "Unauthorized" }, 401);
   }
+  if (params.key === "_check") return json({ ok: true });
   if (!env.DB) return json({ error: "D1 binding 'DB' is missing." }, 500);
 
   const key = params.key;
@@ -46,4 +51,11 @@ export async function onRequest({ request, env, params }) {
   }
 
   return json({ error: "Method not allowed" }, 405);
+}
+
+function safeEqual(a, b) {
+  const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] || 0) ^ (y[i] || 0);
+  return diff === 0;
 }

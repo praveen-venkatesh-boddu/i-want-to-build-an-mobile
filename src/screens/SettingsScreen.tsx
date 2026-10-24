@@ -2,6 +2,7 @@ import { ArrowLeft, CaretDown, CaretUp, EyeSlash, Plus } from "phosphor-react-na
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { SyncPasscode } from "../components/SyncPasscode";
 import { SHELF_ICON_COMPONENTS } from "../constants/shelves";
 import { colors } from "../styles/globalStyles";
 import type { NotifSettings, PantryItem, Shelf } from "../types/pantry";
@@ -138,6 +139,8 @@ export function SettingsScreen({
             </Pressable>
           );
         })}
+
+        <SyncPasscode />
 
         <Text style={s.footnote}>
           New and scanned items land on {defaultShelfName}. A shelf has to be empty before it can be
