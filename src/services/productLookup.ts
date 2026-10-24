@@ -63,19 +63,28 @@ export async function lookupProductByBarcode(
   const swad = findInSwadCatalog(barcode);
   if (swad) return { result: swad, source: "catalog" };
 
-  const food = await lookupOpenFacts(barcode, "https://world.openfoodfacts.org");
-  if (food) return { result: food, source: "off" };
-
   // OpenFoodFacts is food only, but twelve of this app's eighteen categories are
-  // not food. These siblings share the same API shape and cover the rest.
-  const products = await lookupOpenFacts(barcode, "https://world.openproductsfacts.org");
-  if (products) return { result: products, source: "opf" };
+  // not food. Its siblings share the same API shape and cover the rest.
+  //
+  // All four start at once and are read in priority order: the first source in the list
+  // that knows the product wins, and a slow or dead one can't hold up the others. Each
+  // request also has its own timeout, so the whole lookup is bounded.
+  const food = lookupOpenFacts(barcode, "https://world.openfoodfacts.org");
+  const products = lookupOpenFacts(barcode, "https://world.openproductsfacts.org");
+  const beauty = lookupOpenFacts(barcode, "https://world.openbeautyfacts.org");
+  const upc = lookupUpcItemDb(barcode);
 
-  const beauty = await lookupOpenFacts(barcode, "https://world.openbeautyfacts.org");
-  if (beauty) return { result: beauty, source: "opf" };
+  const foodResult = await food;
+  if (foodResult) return { result: foodResult, source: "off" };
 
-  const upc = await lookupUpcItemDb(barcode);
-  if (upc) return { result: upc, source: "opf" };
+  const productsResult = await products;
+  if (productsResult) return { result: productsResult, source: "opf" };
+
+  const beautyResult = await beauty;
+  if (beautyResult) return { result: beautyResult, source: "opf" };
+
+  const upcResult = await upc;
+  if (upcResult) return { result: upcResult, source: "opf" };
 
   return { result: null, source: "none" };
 }
@@ -142,10 +151,24 @@ function findInHistory(barcode: string, items: PantryItem[]): ProductLookupResul
   };
 }
 
+/** Longest any one online lookup may take before it counts as "not found". */
+const LOOKUP_TIMEOUT_MS = 4000;
+
+/** `fetch` that gives up instead of hanging; a timeout surfaces as a normal error to the caller. */
+async function fetchWithTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LOOKUP_TIMEOUT_MS);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** OpenFoodFacts and its non-food siblings all speak the same API. */
 async function lookupOpenFacts(barcode: string, origin: string): Promise<ProductLookupResult | null> {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${origin}/api/v2/product/${encodeURIComponent(
         barcode
       )}.json?fields=product_name,product_name_en,brands,quantity,categories`
@@ -173,7 +196,7 @@ async function lookupOpenFacts(barcode: string, origin: string): Promise<Product
 
 async function lookupUpcItemDb(barcode: string): Promise<ProductLookupResult | null> {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`
     );
     if (!response.ok) return null;

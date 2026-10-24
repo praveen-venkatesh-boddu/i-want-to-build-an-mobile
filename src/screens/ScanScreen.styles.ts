@@ -135,6 +135,49 @@ export const scanStyles = StyleSheet.create({
     textDecorationLine: "underline"
   },
 
+  lookingPanel: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral800,
+    paddingHorizontal: spacing.screenH,
+    paddingTop: 24,
+    paddingBottom: 46
+  },
+  lookingTitle: {
+    color: colors.text,
+    fontSize: 17,
+    marginTop: 4,
+    fontFamily: "SpaceGrotesk_500Medium", fontWeight: "500"
+  },
+  lookingBarcode: {
+    color: colors.accent,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    fontVariant: ["tabular-nums"]
+  },
+  lookingHint: {
+    color: colors.neutral500,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: "center",
+    maxWidth: 280
+  },
+  lookingSkip: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 18
+  },
+  lookingSkipText: {
+    color: colors.neutral300,
+    fontSize: 13,
+    textDecorationLine: "underline"
+  },
   foundPanel: {
     position: "absolute",
     left: 0,

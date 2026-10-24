@@ -6,8 +6,8 @@ import {
 } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { Minus, Plus, X } from "phosphor-react-native";
-import React, { useMemo, useState } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FadeRule } from "../components/FadeRule";
@@ -80,7 +80,12 @@ export function ScanScreen({
 }: ScanScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState<"idle" | "found">("idle");
+  const [step, setStep] = useState<"idle" | "looking" | "found">("idle");
+  const [lookingFor, setLookingFor] = useState("");
+  // Set synchronously, because the camera fires again before React has re-rendered.
+  const busyRef = useRef(false);
+  // Bumped on skip/rescan so a lookup that finishes late is ignored.
+  const attemptRef = useRef(0);
   const [found, setFound] = useState<FoundState | null>(null);
   const [qty, setQty] = useState(1);
   const defaultShelfName = useMemo(() => {
@@ -92,9 +97,23 @@ export function ScanScreen({
   const chips = useMemo(() => scanChips(shelves, defaultShelfId, place), [shelves, defaultShelfId, place]);
 
   async function handleScanned(result: BarcodeScanningResult) {
-    if (step !== "idle" || !result.data) return;
+    if (busyRef.current || step !== "idle" || !result.data) return;
+    busyRef.current = true;
+    const attempt = ++attemptRef.current;
     const barcode = result.data;
-    const { result: lookup } = await lookupProductByBarcode(barcode, knownItems);
+    setLookingFor(barcode);
+    setStep("looking");
+
+    let lookup: Awaited<ReturnType<typeof lookupProductByBarcode>>["result"] = null;
+    try {
+      lookup = (await lookupProductByBarcode(barcode, knownItems)).result;
+    } catch {
+      lookup = null;
+    }
+    // The person skipped or rescanned while this was running.
+    if (attempt !== attemptRef.current) return;
+
+    busyRef.current = false;
     setFound({
       barcode,
       name: lookup?.name ?? "",
@@ -107,7 +126,19 @@ export function ScanScreen({
     setStep("found");
   }
 
+  /** Stop waiting: open the panel empty so the name can be typed in. */
+  function skipLookup() {
+    attemptRef.current += 1;
+    busyRef.current = false;
+    setFound({ barcode: lookingFor, name: "", category: "Other", packageSize: "", unit: "items" });
+    setQty(1);
+    setPlace(defaultShelfName);
+    setStep("found");
+  }
+
   function rescan() {
+    attemptRef.current += 1;
+    busyRef.current = false;
     setFound(null);
     setStep("idle");
   }
@@ -190,6 +221,20 @@ export function ScanScreen({
             </View>
             </View>
           </>
+        ) : null}
+
+        {step === "looking" ? (
+          <View style={s.lookingPanel} accessibilityLiveRegion="polite">
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={s.lookingTitle}>Looking it up…</Text>
+            <Text style={s.lookingBarcode}>{lookingFor.split("").join(" ")}</Text>
+            <Text style={s.lookingHint}>
+              Checking your shelves, the Swad catalog, then online databases. This can take a few seconds.
+            </Text>
+            <Pressable style={s.lookingSkip} onPress={skipLookup} accessibilityLabel="Skip the lookup">
+              <Text style={s.lookingSkipText}>Skip and type it in</Text>
+            </Pressable>
+          </View>
         ) : null}
 
         {step === "found" && found ? (
