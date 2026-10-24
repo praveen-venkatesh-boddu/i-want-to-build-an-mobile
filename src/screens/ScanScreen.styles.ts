@@ -97,12 +97,16 @@ export const scanStyles = StyleSheet.create({
     elevation: 4
   },
 
-  idleHint: {
+  /** One column pinned to the bottom so the hint and fallbacks can never overlap. */
+  bottomStack: {
     position: "absolute",
     left: spacing.screenH,
     right: spacing.screenH,
-    bottom: 48,
-    alignSelf: "center",
+    bottom: 0,
+    gap: 10,
+    alignItems: "stretch"
+  },
+  idleHint: {
     borderWidth: 1,
     borderColor: colors.accent,
     borderRadius: radii.round,
@@ -117,10 +121,6 @@ export const scanStyles = StyleSheet.create({
 
   /** Stacked under the idle hint: read the label, or give up and type it. */
   fallbackRow: {
-    position: "absolute",
-    left: spacing.screenH,
-    right: spacing.screenH,
-    bottom: 14,
     alignItems: "center",
     gap: 4
   },

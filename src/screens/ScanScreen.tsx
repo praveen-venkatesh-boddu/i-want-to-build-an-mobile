@@ -202,6 +202,7 @@ export function ScanScreen({
               />
             </View>
 
+            <View style={[s.bottomStack, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
             <View style={s.idleHint}>
               <Text style={s.idleHintText}>Tap the frame to scan a barcode</Text>
             </View>
@@ -222,6 +223,7 @@ export function ScanScreen({
               <Pressable style={s.manualEntryLink} onPress={onAddManually}>
                 <Text style={s.manualEntryLinkText}>Type it in by hand</Text>
               </Pressable>
+            </View>
             </View>
           </>
         ) : null}

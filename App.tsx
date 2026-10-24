@@ -555,7 +555,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={globalStyles.safeArea}>
+      <SafeAreaView style={globalStyles.safeArea} edges={screen === "scan" ? [] : ["top", "bottom", "left", "right"]}>
         <StatusBar style="light" />
 
         {!ready ? null : editingItem || isAddingItem ? (
