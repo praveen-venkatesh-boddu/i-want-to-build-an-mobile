@@ -291,6 +291,22 @@ export const itemEditorStyles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 7
   },
+  expiryInput: {
+    borderColor: colors.neutral800,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    color: colors.text,
+    fontSize: 12,
+    minWidth: 84,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    fontFamily: "IBMPlexSans_500Medium",
+    fontVariant: ["tabular-nums"]
+  },
+  expiryInputActive: {
+    backgroundColor: colors.accentTint14,
+    borderColor: colors.accent
+  },
   chipActive: {
     backgroundColor: colors.accentTint14,
     borderColor: colors.accent

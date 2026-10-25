@@ -20,7 +20,14 @@ import {
 } from "../services/productLookup";
 import { colors } from "../styles/globalStyles";
 import type { ItemDraft, PantryItem, Shelf } from "../types/pantry";
-import { addDaysToISO, addMonthsToISO, formatShortDate } from "../utils/date";
+import {
+  addDaysToISO,
+  addMonthsToISO,
+  formatMonthYear,
+  formatMonthYearInput,
+  formatShortDate,
+  parseMonthYear
+} from "../utils/date";
 import { ScanScreen } from "./ScanScreen";
 import { itemEditorStyles as styles } from "./ItemEditorScreen.styles";
 
@@ -47,11 +54,11 @@ type ItemEditorScreenProps = {
   onSave: () => void;
 };
 
-type ExpiryPresetKey = "none" | "w" | "m" | "6m" | "y";
-type ExpiryChoice = ExpiryPresetKey | "keep";
+type ExpiryPresetKey = "w" | "m" | "6m" | "y";
+/** `keep` is the date already on the item; `custom` is whatever was typed as MM/YY. */
+type ExpiryChoice = ExpiryPresetKey | "keep" | "custom";
 
 const EXPIRY_PRESETS: Array<{ key: ExpiryPresetKey; label: string; toISO: () => string }> = [
-  { key: "none", label: "No date", toISO: () => "" },
   { key: "w", label: "1 week", toISO: () => addDaysToISO(7) },
   { key: "m", label: "1 month", toISO: () => addMonthsToISO(1) },
   { key: "6m", label: "6 months", toISO: () => addMonthsToISO(6) },
@@ -59,8 +66,8 @@ const EXPIRY_PRESETS: Array<{ key: ExpiryPresetKey; label: string; toISO: () => 
 ];
 
 function matchExpiryPreset(iso: string): ExpiryPresetKey | null {
-  if (!iso) return "none";
-  const preset = EXPIRY_PRESETS.find((p) => p.key !== "none" && p.toISO() === iso);
+  if (!iso) return null;
+  const preset = EXPIRY_PRESETS.find((p) => p.toISO() === iso);
   return preset ? preset.key : null;
 }
 
@@ -82,9 +89,12 @@ export function ItemEditorScreen({
   const [detailsOpen, setDetailsOpen] = useState(isEditing);
 
   const [initialExpiresOn] = useState(draft.expiresOn);
-  const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice>(
-    () => matchExpiryPreset(initialExpiresOn) ?? (initialExpiresOn ? "keep" : "none")
+  // null = nothing chosen, which saves with no date. There is no explicit "no date" chip;
+  // tapping the chosen chip again clears it.
+  const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice | null>(() =>
+    initialExpiresOn ? matchExpiryPreset(initialExpiresOn) ?? "keep" : null
   );
+  const [monthYear, setMonthYear] = useState("");
 
   async function lookupBarcode(barcode: string) {
     setLookingUpBarcode(true);
@@ -108,29 +118,20 @@ export function ItemEditorScreen({
     }
   }
 
-  /** The shared scanner found a product — copy it into the form instead of saving it straight away. */
-  function handleScanConfirmed(input: {
-    name: string;
-    category: string;
-    packageSize: string;
-    unit: string;
-    barcode: string;
-    location: string;
-    quantity: number;
-  }) {
+  /** The shared scanner read a code — copy whatever was found into the form instead of saving it. */
+  function handleScanned(barcode: string, outcome: LookupOutcome, skipped: boolean) {
     setScannerOpen(false);
-    onChangeDraft((current) => ({
-      ...current,
-      name: input.name,
-      category: input.category || current.category,
-      packageSize: input.packageSize,
-      unit: input.unit || current.unit,
-      barcode: input.barcode,
-      location: input.location || current.location,
-      quantity: String(input.quantity)
-    }));
-    onChangeProvenance?.(undefined);
-    setScanMessage("Scanned. Review the item, then save.");
+    onChangeDraft((current) => applyLookupResultToDraft(current, barcode, outcome.result));
+    onChangeProvenance?.(outcome.result ? { source: outcome.source } : undefined);
+    setScanMessage(
+      outcome.result
+        ? "Scanned. Review the item, then save."
+        : skipped
+          ? "Barcode saved. Enter the item details, then save."
+          : outcome.unreachable
+            ? "Barcode captured, but the product databases couldn't be reached. Enter the details, then save."
+            : "Barcode captured, but no product details were found. Enter the item details, then save."
+    );
   }
 
   /** Tapping a runner-up chip. Once corrected, the guess is no longer a guess. */
@@ -157,6 +158,13 @@ export function ItemEditorScreen({
   }
 
   function pickExpiry(key: ExpiryChoice) {
+    setMonthYear("");
+    if (key === expiryChoice) {
+      // Tapping the chosen chip again takes the date off.
+      setExpiryChoice(null);
+      onChangeDraft((current) => ({ ...current, expiresOn: "" }));
+      return;
+    }
     setExpiryChoice(key);
     if (key === "keep") {
       onChangeDraft((current) => ({ ...current, expiresOn: initialExpiresOn }));
@@ -164,6 +172,19 @@ export function ItemEditorScreen({
     }
     const preset = EXPIRY_PRESETS.find((p) => p.key === key);
     onChangeDraft((current) => ({ ...current, expiresOn: preset ? preset.toISO() : "" }));
+  }
+
+  function typeMonthYear(raw: string) {
+    const text = formatMonthYearInput(raw);
+    setMonthYear(text);
+    if (!text) {
+      setExpiryChoice(null);
+      onChangeDraft((current) => ({ ...current, expiresOn: "" }));
+      return;
+    }
+    // Until the text is a real month/year there is no date, so a half-typed value never saves.
+    setExpiryChoice("custom");
+    onChangeDraft((current) => ({ ...current, expiresOn: parseMonthYear(text) ?? "" }));
   }
 
   const openShelves = shelves.filter((shelf) => !shelf.hidden);
@@ -180,13 +201,17 @@ export function ItemEditorScreen({
     ...EXPIRY_PRESETS.map((p) => ({ key: p.key as ExpiryChoice, label: p.label }))
   ];
   const expiryNote =
-    expiryChoice === "none"
-      ? "Won't appear in expiring soon."
+    expiryChoice === null
+      ? "Optional. Pick one, or type the month and year printed on the pack."
       : expiryChoice === "keep"
       ? "Keeping the date already on this item."
+      : expiryChoice === "custom"
+      ? draft.expiresOn
+        ? `Expires at the end of ${formatMonthYear(draft.expiresOn)}.`
+        : "Type the month and year, like 03/27."
       : draft.expiresOn
       ? `Expires around ${formatShortDate(draft.expiresOn)}.`
-      : "Pick one — a rough date still beats none.";
+      : "";
 
   const gaps: string[] = [];
   if (!draft.name.trim()) gaps.push("a name");
@@ -400,6 +425,16 @@ export function ItemEditorScreen({
                     </Text>
                   </Pressable>
                 ))}
+                <TextInput
+                  value={monthYear}
+                  onChangeText={typeMonthYear}
+                  placeholder="MM/YY"
+                  placeholderTextColor={colors.neutral500}
+                  keyboardType="number-pad"
+                  maxLength={7}
+                  accessibilityLabel="Expiry month and year"
+                  style={[styles.expiryInput, expiryChoice === "custom" && styles.expiryInputActive]}
+                />
               </View>
               <Text style={styles.fieldNote}>{expiryNote}</Text>
             </View>
@@ -503,13 +538,10 @@ export function ItemEditorScreen({
       <Modal animationType="slide" visible={isScannerOpen} presentationStyle="fullScreen" onRequestClose={() => setScannerOpen(false)}>
         {/* The same scanner as the home-screen Scan tab, so both entry points feel identical. */}
         <ScanScreen
-          shelves={shelves}
-          defaultShelfId={shelves.find((shelf) => shelf.name === draft.location)?.id ?? null}
           knownItems={knownItems}
-          confirmLabel="Use this item"
           onClose={() => setScannerOpen(false)}
           onAddManually={() => setScannerOpen(false)}
-          onAddToShelf={handleScanConfirmed}
+          onScanned={handleScanned}
         />
       </Modal>
     </View>

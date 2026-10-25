@@ -5,48 +5,28 @@ import {
   useCameraPermissions
 } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
-import { Minus, Plus, X } from "phosphor-react-native";
-import React, { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
+import { X } from "phosphor-react-native";
+import React, { useRef, useState } from "react";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { FadeRule } from "../components/FadeRule";
-import { lookupProductByBarcode } from "../services/productLookup";
+import { lookupProductByBarcode, type LookupOutcome } from "../services/productLookup";
 import { colors } from "../styles/globalStyles";
-import type { PantryItem, Shelf } from "../types/pantry";
+import type { PantryItem } from "../types/pantry";
 import { scanStyles as s } from "./ScanScreen.styles";
 
 type ScanScreenProps = {
-  shelves: Shelf[];
-  defaultShelfId: string | null;
   /** Checked before any network call, so a restock of a known item never hits an API. */
   knownItems: PantryItem[];
   onClose: () => void;
   onAddManually: () => void;
-  /** Label for the confirm button on the found panel. The editor uses "Use this item". */
-  confirmLabel?: string;
-  onAddToShelf: (input: {
-    name: string;
-    category: string;
-    packageSize: string;
-    unit: string;
-    barcode: string;
-    location: string;
-    quantity: number;
-  }) => void;
+  /**
+   * Called once a code has been read and looked up, found or not. The caller opens the edit
+   * form, so the person always lands on the same screen to confirm or fill in the details.
+   * `skipped` is true when they gave up waiting for the lookup.
+   */
+  onScanned: (barcode: string, outcome: LookupOutcome, skipped: boolean) => void;
 };
-
-/** Default shelf first, then the rest in order, capped at 3 — plus the currently
- * selected place if it'd otherwise fall outside that set. */
-function scanChips(shelves: Shelf[], defaultShelfId: string | null, currentPlace: string): Shelf[] {
-  const open = shelves.filter((shelf) => !shelf.hidden);
-  const def = open.find((shelf) => shelf.id === defaultShelfId);
-  const ordered = def ? [def, ...open.filter((shelf) => shelf !== def)] : open;
-  const shown = ordered.slice(0, 3);
-  const current = open.find((shelf) => shelf.name === currentPlace);
-  if (current && !shown.includes(current)) shown[shown.length - 1] = current;
-  return shown;
-}
 
 const SUPPORTED_BARCODE_TYPES: BarcodeType[] = [
   "ean13",
@@ -61,132 +41,47 @@ const SUPPORTED_BARCODE_TYPES: BarcodeType[] = [
   "qr"
 ];
 
-type FoundState = {
-  /** Where the answer came from, or why there isn't one. Shown above the name. */
-  label: string;
-  /** Extra line when nothing was found, replacing the category/size subtitle. */
-  note?: string;
-  barcode: string;
-  name: string;
-  category: string;
-  packageSize: string;
-  unit: string;
-};
-
-const SOURCE_LABEL: Record<string, string> = {
-  history: "IN YOUR SHELVES",
-  catalog: "SWAD CATALOG",
-  off: "FOUND ONLINE",
-  opf: "FOUND ONLINE"
-};
-
-export function ScanScreen({
-  shelves,
-  defaultShelfId,
-  knownItems,
-  onClose,
-  onAddManually,
-  confirmLabel = "Add to shelf",
-  onAddToShelf
-}: ScanScreenProps) {
+export function ScanScreen({ knownItems, onClose, onAddManually, onScanned }: ScanScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState<"idle" | "looking" | "found">("idle");
+  const [step, setStep] = useState<"idle" | "looking">("idle");
   const [lookingFor, setLookingFor] = useState("");
   // Set synchronously, because the camera fires again before React has re-rendered.
   const busyRef = useRef(false);
-  // Bumped on skip/rescan so a lookup that finishes late is ignored.
+  // Bumped on skip so a lookup that finishes late is ignored.
   const attemptRef = useRef(0);
-  const [found, setFound] = useState<FoundState | null>(null);
-  const [qty, setQty] = useState(1);
-  const defaultShelfName = useMemo(() => {
-    const open = shelves.filter((shelf) => !shelf.hidden);
-    const def = open.find((shelf) => shelf.id === defaultShelfId);
-    return (def ?? open[0])?.name ?? "";
-  }, [shelves, defaultShelfId]);
-  const [place, setPlace] = useState<string>(defaultShelfName);
-  const chips = useMemo(() => scanChips(shelves, defaultShelfId, place), [shelves, defaultShelfId, place]);
 
-  async function handleScanned(result: BarcodeScanningResult) {
-    if (busyRef.current || step !== "idle" || !result.data) return;
+  function handleScanned(result: BarcodeScanningResult) {
+    return processBarcode(result.data);
+  }
+
+  async function processBarcode(barcode: string) {
+    if (busyRef.current || step !== "idle" || !barcode) return;
     busyRef.current = true;
     const attempt = ++attemptRef.current;
-    const barcode = result.data;
     setLookingFor(barcode);
     setStep("looking");
 
-    let outcome: Awaited<ReturnType<typeof lookupProductByBarcode>> = { result: null, source: "none", unreachable: true };
+    let outcome: LookupOutcome = { result: null, source: "none", unreachable: true };
     try {
       outcome = await lookupProductByBarcode(barcode, knownItems);
     } catch {
       // keep the "couldn't ask" outcome above
     }
-    const lookup = outcome.result;
-    // The person skipped or rescanned while this was running.
+    // The person skipped while this was running.
     if (attempt !== attemptRef.current) return;
 
     busyRef.current = false;
-    setFound({
-      label: lookup
-        ? SOURCE_LABEL[outcome.source] ?? "FOUND"
-        : outcome.unreachable
-          ? "COULDN'T REACH THE DATABASES"
-          : "NOT IN ANY DATABASE",
-      note: lookup
-        ? undefined
-        : outcome.unreachable
-          ? "Check your connection and tap Rescan, or type the name in."
-          : "Type the name in. It will be remembered for next time.",
-      barcode,
-      name: lookup?.name ?? "",
-      category: lookup?.category ?? "Other",
-      packageSize: lookup?.packageSize ?? "",
-      unit: lookup?.unit ?? "items"
-    });
-    setQty(1);
-    setPlace(defaultShelfName);
-    setStep("found");
+    setStep("idle");
+    onScanned(barcode, outcome, false);
   }
 
-  /** Stop waiting: open the panel empty so the name can be typed in. */
+  /** Stop waiting: go to the form with the barcode and nothing else. */
   function skipLookup() {
     attemptRef.current += 1;
     busyRef.current = false;
-    setFound({
-      label: "LOOKUP SKIPPED",
-      note: "Type the name in. It will be remembered for next time.",
-      barcode: lookingFor,
-      name: "",
-      category: "Other",
-      packageSize: "",
-      unit: "items"
-    });
-    setQty(1);
-    setPlace(defaultShelfName);
-    setStep("found");
-  }
-
-  function rescan() {
-    attemptRef.current += 1;
-    busyRef.current = false;
-    setFound(null);
     setStep("idle");
-  }
-
-  function addToShelf() {
-    if (!found || !found.name.trim()) {
-      Alert.alert("Name required", "Add a name before adding this to the shelf.");
-      return;
-    }
-    onAddToShelf({
-      name: found.name.trim(),
-      category: found.category,
-      packageSize: found.packageSize,
-      unit: found.unit,
-      barcode: found.barcode,
-      location: place,
-      quantity: qty
-    });
+    onScanned(lookingFor, { result: null, source: "none" }, true);
   }
 
   if (!permission || !permission.granted) {
@@ -208,12 +103,14 @@ export function ScanScreen({
 
   return (
     <View style={s.shell}>
+      {permission?.granted ? (
       <CameraView
         style={s.camera}
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: SUPPORTED_BARCODE_TYPES }}
         onBarcodeScanned={step === "idle" ? handleScanned : undefined}
       />
+      ) : null}
 
       <View style={s.overlay}>
         <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
@@ -241,7 +138,9 @@ export function ScanScreen({
 
             <View style={[s.bottomStack, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
             <View style={s.idleHint}>
-              <Text style={s.idleHintText}>Tap the frame to scan a barcode</Text>
+              <Text style={s.idleHintText}>
+                {permission?.granted ? "Tap the frame to scan a barcode" : "Camera access is off"}
+              </Text>
             </View>
 
             <View style={s.fallbackRow}>
@@ -264,72 +163,6 @@ export function ScanScreen({
             <Pressable style={s.lookingSkip} onPress={skipLookup} accessibilityLabel="Skip the lookup">
               <Text style={s.lookingSkipText}>Skip and type it in</Text>
             </Pressable>
-          </View>
-        ) : null}
-
-        {step === "found" && found ? (
-          <View style={s.foundPanel}>
-            <Text style={s.foundEyebrow}>
-              {found.label} · {found.barcode.split("").join(" ")}
-            </Text>
-            <TextInput
-              value={found.name}
-              onChangeText={(name) => setFound({ ...found, name })}
-              placeholder="Item name"
-              placeholderTextColor={colors.neutral500}
-              style={s.productName}
-            />
-            <Text style={s.productSubtitle}>
-              {found.note ?? [found.category, found.packageSize].filter(Boolean).join(" · ")}
-            </Text>
-            <FadeRule style={s.rule} color={colors.neutral800} />
-
-            <View style={s.qtyRow}>
-              <Text style={s.qtyLabel}>Quantity</Text>
-              <View style={s.stepper}>
-                <Pressable
-                  style={[s.stepCircle, s.stepCircleMinus]}
-                  onPress={() => setQty((q) => Math.max(1, q - 1))}
-                  accessibilityLabel="Decrease quantity"
-                >
-                  <Minus size={15} color={colors.neutral300} weight="regular" />
-                </Pressable>
-                <Text style={s.stepValue}>{qty}</Text>
-                <Pressable
-                  style={[s.stepCircle, s.stepCirclePlus]}
-                  onPress={() => setQty((q) => q + 1)}
-                  accessibilityLabel="Increase quantity"
-                >
-                  <Plus size={15} color={colors.accent} weight="regular" />
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={s.goesOnRow}>
-              <Text style={s.goesOnLabel}>Goes on</Text>
-              <View style={s.placeChips}>
-                {chips.map((chip) => (
-                  <Pressable
-                    key={chip.id}
-                    style={[s.placeChip, place === chip.name && s.placeChipActive]}
-                    onPress={() => setPlace(chip.name)}
-                  >
-                    <Text style={[s.placeChipText, place === chip.name && s.placeChipTextActive]}>
-                      {chip.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <View style={s.actionsRow}>
-              <Pressable style={s.addButton} onPress={addToShelf}>
-                <Text style={s.addButtonText}>{confirmLabel}</Text>
-              </Pressable>
-              <Pressable style={s.rescanButton} onPress={rescan}>
-                <Text style={s.rescanButtonText}>Rescan</Text>
-              </Pressable>
-            </View>
           </View>
         ) : null}
       </View>

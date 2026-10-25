@@ -65,3 +65,32 @@ export function getStatusLabel(days: number, dateValue: string) {
   if (days <= 7) return `${days} days`;
   return dateValue;
 }
+
+/**
+ * Typing aid for an MM/YY (or MM/YYYY) box: keeps digits only and inserts the slash.
+ * A lone 2–9 becomes "0N/" so "3" reads as March, not as the start of month 3x.
+ */
+export function formatMonthYearInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 6);
+  if (digits.length === 1 && digits >= "2") return `0${digits}/`;
+  if (digits.length <= 2) return raw.endsWith("/") && digits.length === 2 ? `${digits}/` : digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
+/** "03/27" or "03/2027" → "2027-03-31": a printed month means the end of that month. Null if not a valid month/year. */
+export function parseMonthYear(text: string): string | null {
+  const match = text.trim().match(/^(\d{2})\/(\d{2}|\d{4})$/);
+  if (!match) return null;
+  const month = Number(match[1]);
+  if (month < 1 || month > 12) return null;
+  const year = match[2].length === 2 ? 2000 + Number(match[2]) : Number(match[2]);
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
+/** "Mar 2027" for an ISO date. */
+export function formatMonthYear(dateString: string): string {
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}

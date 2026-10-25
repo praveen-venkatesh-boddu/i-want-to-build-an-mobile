@@ -29,7 +29,7 @@ import { SearchScreen } from "./src/screens/SearchScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { ShelvesScreen } from "./src/screens/ShelvesScreen";
 import { recordScan } from "./src/services/scanLog";
-import type { LookupOutcome } from "./src/services/productLookup";
+import { applyLookupResultToDraft, type LookupOutcome } from "./src/services/productLookup";
 import { loadBasket, loadPantryItems, savePantryItems, saveBasket } from "./src/storage/pantryStorage";
 import { loadShelves, loadSettings, saveShelves, saveSettings } from "./src/storage/shelfStorage";
 import { globalStyles } from "./src/styles/globalStyles";
@@ -473,57 +473,53 @@ export default function App() {
   }
 
   // ── Scan actions ───────────────────────────────────────────────────────
-  function addFromScan(input: {
-    name: string;
-    category: string;
-    packageSize: string;
-    unit: string;
-    barcode: string;
-    location: string;
-    quantity: number;
-  }) {
-    const incomingKey = input.name.trim().toLowerCase();
-    const incomingBarcode = input.barcode.trim();
-    setItems((prev) => {
-      // 1. The barcode is the strongest identity: if we already track it, restock that item
-      //    even when it has been renamed since.
-      // 2. Otherwise fall back to the name, but only onto an item with no barcode yet. An item
-      //    that carries a different barcode is a different product that happens to share a name.
-      const existing =
-        (incomingBarcode ? prev.find((i) => i.barcode.trim() === incomingBarcode) : undefined) ??
-        prev.find((i) => i.name.trim().toLowerCase() === incomingKey && !i.barcode.trim());
-      if (existing) {
-        return prev.map((i) =>
-          i.id === existing.id
-            ? {
-                ...i,
-                quantity: i.quantity + input.quantity,
-                // Link the barcode the first time, so the next scan matches this item directly.
-                barcode: i.barcode.trim() ? i.barcode : incomingBarcode
-              }
-            : i
-        );
-      }
-      const newItem: PantryItem = {
-        id: `${Date.now()}`,
-        addedOn: todayISO(),
-        name: input.name,
-        category: input.category || "Staples",
-        quantity: input.quantity,
-        unit: input.unit || "items",
-        packageSize: input.packageSize,
-        location: input.location,
-        expiresOn: "",
-        barcode: input.barcode,
-        notes: "",
-        opened: false,
-        par: Math.max(1, input.quantity),
-        addedBy: "You"
-      };
-      return [newItem, ...prev];
-    });
-    setScreen("shelves");
-    flashToast(`${input.name} added to ${input.location.toLowerCase()}.`);
+  /**
+   * Every scan ends on the edit form, found or not, so the person confirms or fills in the details
+   * there. An item we already track opens in edit mode instead of becoming a duplicate.
+   */
+  function startAddFromScan(barcode: string, outcome: LookupOutcome, skipped: boolean) {
+    const code = barcode.trim();
+    const byBarcode = code ? items.find((i) => i.barcode.trim() === code) : undefined;
+    const foundName = outcome.result?.name?.trim().toLowerCase();
+    // A name match only counts for an item with no barcode yet; one that carries a different
+    // barcode is a different product that happens to share a name.
+    const byName =
+      !byBarcode && foundName
+        ? items.find((i) => i.name.trim().toLowerCase() === foundName && !i.barcode.trim())
+        : undefined;
+    const existing = byBarcode ?? byName;
+
+    if (existing) {
+      editDetails(existing);
+      if (byName) setDraft((current) => ({ ...current, barcode: code }));
+      setScreen("list");
+      flashToast(
+        byBarcode ? "Already on your shelves — update it here." : "Already on your shelves — barcode added, save to link it."
+      );
+      return;
+    }
+
+    const def = openShelves.find((sh) => sh.id === defaultShelfId) ?? openShelves[0];
+    setDraft(
+      applyLookupResultToDraft(
+        { ...makeEmptyDraft(), location: def ? def.name : "Storage" },
+        code,
+        outcome.result
+      )
+    );
+    setProvenance(outcome.result ? { source: outcome.source } : undefined);
+    setPendingScan(null);
+    setIsAddingItem(true);
+    setScreen("list");
+    flashToast(
+      outcome.result
+        ? "Found it — check the details and save."
+        : skipped
+          ? "Barcode saved — fill in the details."
+          : outcome.unreachable
+            ? "Couldn't reach the product databases — fill in the details."
+            : "Not in any catalog — fill in the details."
+    );
   }
 
   // ── Barcode matching ───────────────────────────────────────────────────
@@ -662,11 +658,9 @@ export default function App() {
 
             {screen === "scan" && (
               <ScanScreen
-                shelves={shelves}
-                defaultShelfId={defaultShelfId}
                 knownItems={items}
                 onClose={() => setScreen(running ? "run" : "list")}
-                onAddToShelf={addFromScan}
+                onScanned={startAddFromScan}
                 onAddManually={startAddItem}
               />
             )}
