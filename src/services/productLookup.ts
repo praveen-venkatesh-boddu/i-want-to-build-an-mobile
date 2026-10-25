@@ -43,6 +43,9 @@ export type LookupOutcome = {
   candidates?: string[];
   /** OCR blocks, carried through for the scan log and any future model call. */
   blocks?: OcrBlock[];
+  /** True when nothing was found AND at least one online source failed or timed out,
+   *  so "not found" may just mean "couldn't ask". */
+  unreachable?: boolean;
 };
 
 /**
@@ -66,13 +69,15 @@ export async function lookupProductByBarcode(
   // OpenFoodFacts is food only, but twelve of this app's eighteen categories are
   // not food. Its siblings share the same API shape and cover the rest.
   //
-  // All four start at once and are read in priority order: the first source in the list
-  // that knows the product wins, and a slow or dead one can't hold up the others. Each
-  // request also has its own timeout, so the whole lookup is bounded.
+  // The three Open*Facts sources start at once and are read in priority order: the first one
+  // that knows the product wins, and a slow one can't hold up the others. Every request has its
+  // own timeout, so the whole lookup is bounded.
+  //
+  // `undefined` means "couldn't ask" (timeout, offline, rate-limited); `null` means "asked, and
+  // it isn't there". The difference decides what the scan screen tells the person.
   const food = lookupOpenFacts(barcode, "https://world.openfoodfacts.org");
   const products = lookupOpenFacts(barcode, "https://world.openproductsfacts.org");
   const beauty = lookupOpenFacts(barcode, "https://world.openbeautyfacts.org");
-  const upc = lookupUpcItemDb(barcode);
 
   const foodResult = await food;
   if (foodResult) return { result: foodResult, source: "off" };
@@ -83,10 +88,13 @@ export async function lookupProductByBarcode(
   const beautyResult = await beauty;
   if (beautyResult) return { result: beautyResult, source: "opf" };
 
-  const upcResult = await upc;
+  // UPCitemdb's free tier allows only a handful of lookups per minute and 100 a day, so it is
+  // the last resort and is only asked once everything else has come up empty.
+  const upcResult = await lookupUpcItemDb(barcode);
   if (upcResult) return { result: upcResult, source: "opf" };
 
-  return { result: null, source: "none" };
+  const couldntAsk = [foodResult, productsResult, beautyResult, upcResult].some((result) => result === undefined);
+  return { result: null, source: "none", unreachable: couldntAsk };
 }
 
 /**
@@ -166,14 +174,14 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 }
 
 /** OpenFoodFacts and its non-food siblings all speak the same API. */
-async function lookupOpenFacts(barcode: string, origin: string): Promise<ProductLookupResult | null> {
+async function lookupOpenFacts(barcode: string, origin: string): Promise<ProductLookupResult | null | undefined> {
   try {
     const response = await fetchWithTimeout(
       `${origin}/api/v2/product/${encodeURIComponent(
         barcode
       )}.json?fields=product_name,product_name_en,brands,quantity,categories`
     );
-    if (!response.ok) return null;
+    if (!response.ok) return response.status === 404 ? null : undefined;
 
     const payload = (await response.json()) as OpenFactsResponse;
     if (payload.status !== 1 || !payload.product) return null;
@@ -190,16 +198,16 @@ async function lookupOpenFacts(barcode: string, origin: string): Promise<Product
       unit
     };
   } catch {
-    return null;
+    return undefined;
   }
 }
 
-async function lookupUpcItemDb(barcode: string): Promise<ProductLookupResult | null> {
+async function lookupUpcItemDb(barcode: string): Promise<ProductLookupResult | null | undefined> {
   try {
     const response = await fetchWithTimeout(
       `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`
     );
-    if (!response.ok) return null;
+    if (!response.ok) return response.status === 404 ? null : undefined;
 
     const payload = (await response.json()) as UpcItemDbResponse;
     const item = payload.items?.[0];
@@ -219,7 +227,7 @@ async function lookupUpcItemDb(barcode: string): Promise<ProductLookupResult | n
       unit
     };
   } catch {
-    return null;
+    return undefined;
   }
 }
 

@@ -62,11 +62,22 @@ const SUPPORTED_BARCODE_TYPES: BarcodeType[] = [
 ];
 
 type FoundState = {
+  /** Where the answer came from, or why there isn't one. Shown above the name. */
+  label: string;
+  /** Extra line when nothing was found, replacing the category/size subtitle. */
+  note?: string;
   barcode: string;
   name: string;
   category: string;
   packageSize: string;
   unit: string;
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+  history: "IN YOUR SHELVES",
+  catalog: "SWAD CATALOG",
+  off: "FOUND ONLINE",
+  opf: "FOUND ONLINE"
 };
 
 export function ScanScreen({
@@ -104,17 +115,28 @@ export function ScanScreen({
     setLookingFor(barcode);
     setStep("looking");
 
-    let lookup: Awaited<ReturnType<typeof lookupProductByBarcode>>["result"] = null;
+    let outcome: Awaited<ReturnType<typeof lookupProductByBarcode>> = { result: null, source: "none", unreachable: true };
     try {
-      lookup = (await lookupProductByBarcode(barcode, knownItems)).result;
+      outcome = await lookupProductByBarcode(barcode, knownItems);
     } catch {
-      lookup = null;
+      // keep the "couldn't ask" outcome above
     }
+    const lookup = outcome.result;
     // The person skipped or rescanned while this was running.
     if (attempt !== attemptRef.current) return;
 
     busyRef.current = false;
     setFound({
+      label: lookup
+        ? SOURCE_LABEL[outcome.source] ?? "FOUND"
+        : outcome.unreachable
+          ? "COULDN'T REACH THE DATABASES"
+          : "NOT IN ANY DATABASE",
+      note: lookup
+        ? undefined
+        : outcome.unreachable
+          ? "Check your connection and tap Rescan, or type the name in."
+          : "Type the name in. It will be remembered for next time.",
       barcode,
       name: lookup?.name ?? "",
       category: lookup?.category ?? "Other",
@@ -130,7 +152,15 @@ export function ScanScreen({
   function skipLookup() {
     attemptRef.current += 1;
     busyRef.current = false;
-    setFound({ barcode: lookingFor, name: "", category: "Other", packageSize: "", unit: "items" });
+    setFound({
+      label: "LOOKUP SKIPPED",
+      note: "Type the name in. It will be remembered for next time.",
+      barcode: lookingFor,
+      name: "",
+      category: "Other",
+      packageSize: "",
+      unit: "items"
+    });
     setQty(1);
     setPlace(defaultShelfName);
     setStep("found");
@@ -240,7 +270,7 @@ export function ScanScreen({
         {step === "found" && found ? (
           <View style={s.foundPanel}>
             <Text style={s.foundEyebrow}>
-              FOUND · {found.barcode.split("").join(" ")}
+              {found.label} · {found.barcode.split("").join(" ")}
             </Text>
             <TextInput
               value={found.name}
@@ -250,7 +280,7 @@ export function ScanScreen({
               style={s.productName}
             />
             <Text style={s.productSubtitle}>
-              {[found.category, found.packageSize].filter(Boolean).join(" · ")}
+              {found.note ?? [found.category, found.packageSize].filter(Boolean).join(" · ")}
             </Text>
             <FadeRule style={s.rule} color={colors.neutral800} />
 
