@@ -49,7 +49,7 @@ export default function App() {
 
   const [items, setItems] = useState<PantryItem[]>(starterItems);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [basket, setBasket] = useState<Record<string, boolean>>({});
+  const [basket, setBasket] = useState<Record<string, number>>({});
   const [basketLoaded, setBasketLoaded] = useState(false);
 
   const [shelves, setShelves] = useState<Shelf[]>(SHELF_SEED);
@@ -287,11 +287,17 @@ export default function App() {
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, opened: !i.opened } : i)));
   }
 
-  function snoozeItem(item: PantryItem) {
-    const deferredUntil = addDaysToISO(15);
+  function snoozeItem(item: PantryItem, days = 15, label = "15 days") {
+    const deferredUntil = addDaysToISO(days);
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, deferredUntil } : i)));
     void scheduleDeferReminder(item.id, item.name, deferredUntil);
-    flashToast(`${item.name} snoozed for 15 days.`);
+    // A snoozed item that stayed ticked would keep showing in the run.
+    setBasket((prev) => {
+      if (!prev[item.id]) return prev;
+      const { [item.id]: _removed, ...rest } = prev;
+      return rest;
+    });
+    flashToast(`${item.name} snoozed for ${label}.`);
     setSheetId(null);
   }
 
@@ -440,8 +446,12 @@ export default function App() {
     setScreen("run");
   }
 
-  function toggleBasket(item: PantryItem) {
-    setBasket((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+  /** How many of this item went into the basket; 0 takes it back out. */
+  function setBasketQuantity(item: PantryItem, quantity: number) {
+    setBasket((prev) => {
+      const { [item.id]: _old, ...rest } = prev;
+      return quantity > 0 ? { ...rest, [item.id]: quantity } : rest;
+    });
   }
 
   function finishRun() {
@@ -451,7 +461,7 @@ export default function App() {
         tickedIds.includes(i.id)
           ? {
               ...i,
-              quantity: Math.max(1, (i.par ?? 1) - i.quantity),
+              quantity: i.quantity + (basket[i.id] ?? 1),
               opened: false,
               deferredUntil: undefined,
               ranOutOn: undefined
@@ -627,7 +637,8 @@ export default function App() {
                 runItems={runSource}
                 shelves={shelves}
                 basket={basket}
-                onToggleBasket={toggleBasket}
+                onSetBasketQuantity={setBasketQuantity}
+                onSnooze={snoozeItem}
                 onPause={() => setScreen("list")}
                 onFinish={finishRun}
                 onNothingTicked={() => flashToast("Tick something into the basket first.")}

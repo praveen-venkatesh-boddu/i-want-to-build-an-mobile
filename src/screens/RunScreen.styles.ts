@@ -87,6 +87,121 @@ export const runStyles = StyleSheet.create({
     marginTop: 0
   },
 
+  modalScrim: {
+    flex: 1,
+    backgroundColor: colors.scrim,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.screenH
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: 20,
+    gap: 6
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontFamily: "IBMPlexSans_500Medium",
+    fontWeight: "500"
+  },
+  modalSub: {
+    color: colors.neutral500,
+    fontSize: 13
+  },
+  modalStepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 18,
+    marginVertical: 18
+  },
+  modalStepButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.neutral900
+  },
+  modalInput: {
+    minWidth: 72,
+    textAlign: "center",
+    color: colors.text,
+    fontSize: 34,
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral700
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10
+  },
+  modalCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: radii.md,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.neutral700
+  },
+  modalCancelText: {
+    color: colors.neutral300,
+    fontSize: 14
+  },
+  modalConfirm: {
+    flex: 2,
+    paddingVertical: 12,
+    borderRadius: radii.md,
+    alignItems: "center",
+    backgroundColor: colors.accent700
+  },
+  modalConfirmDisabled: {
+    opacity: 0.4
+  },
+  modalConfirmText: {
+    color: colors.accent100,
+    fontSize: 14,
+    fontFamily: "IBMPlexSans_500Medium",
+    fontWeight: "500"
+  },
+
+  swipeShell: {
+    overflow: "hidden"
+  },
+  swipeFront: {
+    backgroundColor: colors.bg
+  },
+  snoozeUnderlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 264,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: spacing.screenH,
+    paddingRight: 8,
+    backgroundColor: colors.accent900
+  },
+  snoozeChip: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: radii.round,
+    alignItems: "center",
+    backgroundColor: colors.accent800
+  },
+  snoozeChipText: {
+    color: colors.accent200,
+    fontSize: 11,
+    fontFamily: "IBMPlexSans_500Medium",
+    fontWeight: "500"
+  },
+
   row: {
     flexDirection: "row",
     alignItems: "center",

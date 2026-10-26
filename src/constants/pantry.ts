@@ -2,28 +2,47 @@ import type { FilterKey, ItemDraft, PantryItem } from "../types/pantry";
 import { oneYearFromTodayISO } from "../utils/date";
 
 export const categories = [
+  "Dairy",
   "Staples",
   "Produce",
-  "Cans",
   "Frozen",
-  "Snacks",
   "Spices",
+  "Snacks",
+  "Medicine",
+  "Stationery",
   "Toiletries",
-  "Cleaning",
-  "Laundry",
-  "Paper Goods",
-  "First Aid",
-  "Pet Supplies",
-  "Baby Supplies",
-  "Office Supplies",
-  "Batteries",
-  "Hardware",
-  "Seasonal",
   "Other"
 ];
 
+/**
+ * Categories the app used before the list was cut down, and where each one lives now.
+ * Applied to saved items on load and to anything a lookup returns, so an old value never
+ * leaves the editor with no chip lit.
+ */
+const LEGACY_CATEGORY_MAP: Record<string, string> = {
+  cans: "Staples",
+  "first aid": "Medicine",
+  "office supplies": "Stationery",
+  cleaning: "Other",
+  laundry: "Other",
+  "paper goods": "Other",
+  "pet supplies": "Other",
+  "baby supplies": "Other",
+  batteries: "Other",
+  hardware: "Other",
+  seasonal: "Other"
+};
+
+/** Maps any category text onto the current list; anything unknown becomes "Other". */
+export function normalizeCategory(category: string | undefined | null): string {
+  const value = (category ?? "").trim();
+  if (!value) return "Other";
+  const current = categories.find((known) => known.toLowerCase() === value.toLowerCase());
+  return current ?? LEGACY_CATEGORY_MAP[value.toLowerCase()] ?? "Other";
+}
+
 // Categories treated as perishable for the home dashboard tile
-export const PERISHABLE_CATEGORIES = ["Produce", "Frozen"];
+export const PERISHABLE_CATEGORIES = ["Dairy", "Produce", "Frozen"];
 
 export const packageTypes = [
   { label: "Bags", value: "bags", defaultSize: "10 lb" },

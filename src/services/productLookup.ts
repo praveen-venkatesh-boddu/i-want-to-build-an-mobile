@@ -1,4 +1,4 @@
-import { categories, getDefaultPackageSize, packageTypes } from "../constants/pantry";
+import { getDefaultPackageSize, normalizeCategory, packageTypes } from "../constants/pantry";
 import type { ExtractionResult, LookupSource, OcrBlock } from "../types/label";
 import type { ItemDraft, PantryItem } from "../types/pantry";
 import { extractProduct } from "./labelExtract";
@@ -66,7 +66,7 @@ export async function lookupProductByBarcode(
   const swad = findInSwadCatalog(barcode);
   if (swad) return { result: swad, source: "catalog" };
 
-  // OpenFoodFacts is food only, but twelve of this app's eighteen categories are
+  // OpenFoodFacts is food only, but several of this app's categories are
   // not food. Its siblings share the same API shape and cover the rest.
   //
   // The three Open*Facts sources start at once and are read in priority order: the first one
@@ -277,8 +277,7 @@ function inferPackageType(quantity: string) {
  */
 function coerceCategory(category: string | undefined): string | undefined {
   if (!category) return undefined;
-  const match = categories.find((known) => known.toLowerCase() === category.toLowerCase());
-  return match ?? "Other";
+  return normalizeCategory(category);
 }
 
 /** The same guard for package type, against `packageTypes`. */
@@ -291,18 +290,18 @@ function coerceUnit(unit: string | undefined): string | undefined {
 function mapOpenFactsCategory(categoryTags: string[]) {
   const normalizedTags = categoryTags.join(" ").toLowerCase();
 
+  // Pizza sauce lives with the dairy, so it is checked before the general sauce rule.
+  if (matchesAny(normalizedTags, ["pizza-sauce", "pizza sauce"])) return "Dairy";
   if (matchesAny(normalizedTags, ["spice", "herb", "seasoning", "sauce", "condiment"])) return "Spices";
   if (matchesAny(normalizedTags, ["fruit", "vegetable", "produce"])) return "Produce";
   if (matchesAny(normalizedTags, ["frozen"])) return "Frozen";
   if (matchesAny(normalizedTags, ["snack", "chips", "crackers", "cookies", "confectionery"])) return "Snacks";
-  if (matchesAny(normalizedTags, ["canned", "tin", "preserved-foods"])) return "Cans";
+  if (matchesAny(normalizedTags, ["dairies", "dairy", "milk", "cheese", "butter", "yogurt", "yoghurt", "cream", "bread", "spread"])) {
+    return "Dairy";
+  }
+  if (matchesAny(normalizedTags, ["canned", "tin", "preserved-foods"])) return "Staples";
   if (matchesAny(normalizedTags, ["beauty", "hygiene", "toiletr", "hair", "dental"])) return "Toiletries";
-  if (matchesAny(normalizedTags, ["laundry"])) return "Laundry";
-  if (matchesAny(normalizedTags, ["cleaning", "detergent", "household"])) return "Cleaning";
-  if (matchesAny(normalizedTags, ["paper", "tissue"])) return "Paper Goods";
-  if (matchesAny(normalizedTags, ["pet", "cat-", "dog-"])) return "Pet Supplies";
-  if (matchesAny(normalizedTags, ["baby", "infant"])) return "Baby Supplies";
-  if (matchesAny(normalizedTags, ["batter"])) return "Batteries";
+  if (matchesAny(normalizedTags, ["medicine", "drug", "pharma", "first-aid", "bandage"])) return "Medicine";
   if (matchesAny(normalizedTags, ["beverage", "cereal", "pasta", "rice", "grocer"])) return "Staples";
 
   return "Other";
@@ -311,23 +310,17 @@ function mapOpenFactsCategory(categoryTags: string[]) {
 function mapUpcItemDbCategory(category: string) {
   const c = category.toLowerCase();
 
-  // Every branch must return a value present in `categories`. "Dairy", "Meat" and
-  // "Household" are not in that list and previously left the editor with no chip lit.
+  // Every branch must return a value present in `categories`; "Meat" and "Household"
+  // are not in that list, so they fold into Produce and Other.
   if (matchesAny(c, ["frozen"])) return "Frozen";
+  if (matchesAny(c, ["pizza sauce"])) return "Dairy";
   if (matchesAny(c, ["snack", "candy", "confection", "chip", "cookie"])) return "Snacks";
   if (matchesAny(c, ["spice", "herb", "sauce", "condiment", "seasoning"])) return "Spices";
-  if (matchesAny(c, ["produce", "fruit", "vegetable", "dairy", "egg", "cheese", "milk", "yogurt", "meat", "poultry", "seafood", "fish"])) {
-    return "Produce";
-  }
-  if (matchesAny(c, ["laundry"])) return "Laundry";
-  if (matchesAny(c, ["cleaning", "cleaner", "detergent"])) return "Cleaning";
-  if (matchesAny(c, ["paper", "tissue", "towel"])) return "Paper Goods";
+  if (matchesAny(c, ["dairy", "egg", "cheese", "milk", "yogurt", "butter", "cream", "bread", "spread"])) return "Dairy";
+  if (matchesAny(c, ["produce", "fruit", "vegetable", "meat", "poultry", "seafood", "fish"])) return "Produce";
+  if (matchesAny(c, ["medicine", "medication", "drug", "pharma", "first aid", "vitamin"])) return "Medicine";
   if (matchesAny(c, ["health", "beauty", "personal care", "hygiene"])) return "Toiletries";
-  if (matchesAny(c, ["pet"])) return "Pet Supplies";
-  if (matchesAny(c, ["baby", "infant"])) return "Baby Supplies";
-  if (matchesAny(c, ["batter"])) return "Batteries";
-  if (matchesAny(c, ["office", "stationer"])) return "Office Supplies";
-  if (matchesAny(c, ["hardware", "tool"])) return "Hardware";
+  if (matchesAny(c, ["office", "stationer"])) return "Stationery";
   if (matchesAny(c, ["food", "grocery", "beverage", "drink"])) return "Staples";
 
   // Not "Staples" — a bottle of bleach is not a staple.

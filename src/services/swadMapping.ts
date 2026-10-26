@@ -66,7 +66,7 @@ const CATEGORY_MAP: Record<string, string> = {
   "dry fruit / nuts": "Snacks",
   nuts: "Snacks",
 
-  "mango pulp": "Cans",
+  "mango pulp": "Staples",
   "pooja products": "Other"
 };
 
